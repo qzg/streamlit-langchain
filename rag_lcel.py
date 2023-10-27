@@ -27,22 +27,13 @@ from langchain.document_loaders import PyPDFLoader
 
 # Streaming call back handler for responses
 class StreamHandler(BaseCallbackHandler):
-    def __init__(self, container, initial_text=""):
+    def __init__(self, container, initial_text=''):
         self.container = container
         self.text = initial_text
 
     def on_llm_new_token(self, token: str, **kwargs):
         self.text += token
-        self.container.markdown(self.text + "▌")
-
-# Define the number of docs to retrieve from the vectorstore and memory
-top_k = 4
-
-# Define the language options
-lang_options = {
-    "🇺🇸 English User interface":"en_US",
-    "🇳🇱 Nederlandse gebruikers interface":"nl_NL"
-}
+        self.container.markdown(self.text + '▌')
 
 #################
 ### Functions ###
@@ -63,7 +54,7 @@ def get_authenticator():
 # Function to load the localized strings
 def localization(locale):
     # Load in the text bundle and filter by language locale
-    df = pd.read_csv("localization.csv")
+    df = pd.read_csv('localization.csv')
     df = df.query(f"locale == '{locale}'")
     # Create and return a dictionary of key/values.
     lang_dict = {df.key.to_list()[i]:df.value.to_list()[i] for i in range(len(df.key.to_list()))}
@@ -72,7 +63,7 @@ def localization(locale):
 # Function to load the experience on rails
 def rails(username):
     # Load in the rails bundle and filter by username
-    df = pd.read_csv("rails.csv")
+    df = pd.read_csv('rails.csv')
     df = df.query(f"username == '{username}'")
     # Create and return a dictionary of key/values.
     rails_dict = {df.key.to_list()[i]:df.value.to_list()[i] for i in range(len(df.key.to_list()))}
@@ -100,7 +91,7 @@ def vectorize_text(uploaded_file):
             file = uploaded_file
             logging.info("""Processing: {file}""")
             temp_filepath = os.path.join(temp_dir.name, file.name)
-            with open(temp_filepath, "wb") as f:
+            with open(temp_filepath, 'wb') as f:
                 f.write(file.getvalue())
             loader = PyPDFLoader(temp_filepath)
             docs.extend(loader.load())
@@ -118,11 +109,23 @@ def vectorize_text(uploaded_file):
 def drop_vector_data(username):
     session.execute(f"DROP TABLE IF EXISTS vector_preview.vector_context_{username}")
 
+#################
+### Constants ###
+#################
+
+# Define the number of docs to retrieve from the vectorstore and memory
+top_k = 4
+
+# Define the language options
+lang_options = {
+    '🇺🇸 English User interface':'en_US',
+    '🇳🇱 Nederlandse gebruikers interface':'nl_NL'
+}
 # Select the language
 #with st.sidebar:
 #    locale = st.selectbox(label='Language', label_visibility="hidden", options=list(lang_options.keys()))
 #    lang_dict = localization(lang_options[locale])
-lang_dict = localization("en_US")
+lang_dict = localization('en_US')
 
 ######################
 ### Authentication ###
@@ -138,30 +141,18 @@ elif authentication_status == False:
         st.error('Username/password is incorrect')
     st.cache_resource.clear()
     st.session_state.clear()
-    logging.info("Quitting for authentication")
+    logging.info('Quitting for authentication')
     st.stop()
 elif authentication_status == None:
     with st.sidebar:
         st.warning('Please enter your username and password')
     st.cache_resource.clear()
     st.session_state.clear()
-    logging.info("Quitting for authentication")
+    logging.info('Quitting for authentication')
     st.stop()
 
 # Select the rails experience
 rails_dict = rails(username)
-
-#####################
-### Session Cache ###
-#####################
-
-# Cache Chat Memory for future runs
-if "memory" not in st.session_state:
-    st.session_state.memory = ConversationBufferWindowMemory(
-        return_messages=True,
-        k=top_k
-    )
-memory = st.session_state.memory
 
 #######################
 ### Resources Cache ###
@@ -172,27 +163,19 @@ with st.sidebar:
     @st.cache_resource(show_spinner=lang_dict['connect_astra'])
     def load_session():
         # Connect to Astra DB
-        cluster = Cluster(cloud={'secure_connect_bundle': st.secrets["ASTRA_SCB_PATH"]}, 
-                        auth_provider=PlainTextAuthProvider(st.secrets["ASTRA_CLIENT_ID"], 
-                                                            st.secrets["ASTRA_CLIENT_SECRET"]))
+        cluster = Cluster(cloud={'secure_connect_bundle': st.secrets['ASTRA_SCB_PATH']}, 
+                        auth_provider=PlainTextAuthProvider(st.secrets['ASTRA_CLIENT_ID'], 
+                                                            st.secrets['ASTRA_CLIENT_SECRET']))
         return cluster.connect()
     session = load_session()
 
-# Cache OpenAI Embedding for future runs
-embedding = OpenAIEmbeddings(openai_api_key=st.secrets["OPENAI_API_KEY"])
-
 # Cache Vector Store for future runs
 vectorstore = Cassandra(
-    embedding=embedding,
+    embedding=OpenAIEmbeddings(openai_api_key=st.secrets['OPENAI_API_KEY']),
     session=session,
     keyspace='vector_preview',
     table_name=f"vector_context_{username}"
 )
-
-# Cache Retriever for future runs
-retriever = vectorstore.as_retriever(
-        search_kwargs={"k": top_k}
-    )
 
 ################
 ### Main app ###
@@ -209,7 +192,7 @@ with st.sidebar:
             vectorize_text(uploaded_file)
 
 # Drop the vector data and start from scratch
-if username == "michel":
+if username == 'michel':
     with st.sidebar:
         with st.form('drop'):
             st.caption(lang_dict['drop_context'])
@@ -217,14 +200,8 @@ if username == "michel":
             if submitted:
                 with st.spinner(lang_dict['dropping_context']):
                     vectorstore.clear()
-                    vectorstore = Cassandra(
-                        embedding=embedding,
-                        session=session,
-                        keyspace='vector_preview',
-                        table_name=f"vector_context_{username}"
-                    )
-                    st.session_state["messages"] = [AIMessage(content=lang_dict['assistant_welcome'])]
-                    memory.clear()
+                    st.session_state.messages = [AIMessage(content=lang_dict['assistant_welcome'])]
+                    st.session_state.memory.clear()
 
 # Draw rails
 with st.sidebar:
@@ -234,8 +211,15 @@ with st.sidebar:
             if i>1:
                 st.markdown(f"{i-1}. {rails_dict[i]}")
 
+# Start with empty memory
+if 'memory' not in st.session_state:
+    st.session_state.memory = ConversationBufferWindowMemory(
+        return_messages=True,
+        k=top_k
+    )
+
 # Start with empty messages, stored in session state
-if "messages" not in st.session_state:
+if 'messages' not in st.session_state:
     st.session_state.messages = [AIMessage(content=lang_dict['assistant_welcome'])]
 
 # Redraw all messages, both user and agent so far (every time the app reruns)
@@ -243,21 +227,20 @@ for message in st.session_state.messages:
     st.chat_message(message.type).markdown(message.content)
 
 # Now get a prompt from a user
-question = st.chat_input(lang_dict['assistant_question'])
-if question:
+if question := st.chat_input(lang_dict['assistant_question']):
      # Add the prompt to messages, stored in session state
     st.session_state.messages.append(HumanMessage(content=question))
 
     # Draw the prompt on the page
-    with st.chat_message("human"):
+    with st.chat_message('human'):
         st.markdown(question)
 
     # Get the results from Langchain
-    with st.chat_message("assistant"):
+    with st.chat_message('assistant'):
         # UI placeholder to start filling with agent response
         response_placeholder = st.empty()
 
-        history = memory.load_memory_variables({})
+        history = st.session_state.memory.load_memory_variables({})
         #print(f"Getting LLM response for: {question}")
         #print(f"Using memory: {history}")
 
@@ -265,10 +248,14 @@ if question:
 
         # Cache OpenAI Chat Model for future runs
         model = ChatOpenAI(
-            openai_api_key=st.secrets["OPENAI_API_KEY"],
+            openai_api_key=st.secrets['OPENAI_API_KEY'],
             streaming=True,
             verbose=True,
             callbacks=[callback]
+            )
+
+        retriever = vectorstore.as_retriever(
+                search_kwargs={'k': top_k}
             )
 
         # Cache Conversational Chain for future runs
@@ -292,9 +279,9 @@ if question:
         prompt = ChatPromptTemplate.from_template(template)
 
         chain = RunnableMap({
-            "context": lambda x: retriever.get_relevant_documents(x["question"]),
-            "history": lambda x: x["history"],
-            "question": lambda x: x["question"]
+            'context': lambda x: retriever.get_relevant_documents(x['question']),
+            'history': lambda x: x['history'],
+            'question': lambda x: x['question']
         }) | prompt | model
 
         response = chain.invoke({'question': question, 'history': history})
@@ -305,7 +292,7 @@ if question:
         response_placeholder.markdown(response.content)
 
         # Add the result to memory
-        memory.save_context({'question': question}, {"output": response.content})
+        st.session_state.memory.save_context({'question': question}, {'output': response.content})
 
         # Add the answer to the messages session state
         st.session_state.messages.append(AIMessage(content=response.content))
