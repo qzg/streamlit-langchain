@@ -1,12 +1,12 @@
 username,key,value
-postnl,0,Try the following prompts 🤩
+postnl,0,🤩 Try the following prompts ⬇️
 postnl,1,(copy and paste in the chat box)
 postnl,2,Wat is PostNL?
 postnl,3,Wat nou als ik veel pakketten moet versturen?
 postnl,4,Vertel me meer over de haalservice
 postnl,5,Schrijf een mail voor een prospect over de haalservice
 postnl,6,Wat zijn de duurzaamheidsvoordelen van de haalservice?
-datastax,0,Try the following prompts 🤩
+datastax,0,🤩 Try the following prompts ⬇️
 datastax,1,(copy and paste in the chat box)
 datastax,2,What is DataStax?
 datastax,3,What is Vector Search?
