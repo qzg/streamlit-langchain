@@ -137,12 +137,14 @@ elif authentication_status == False:
     with st.sidebar:
         st.error('Username/password is incorrect')
     st.cache_resource.clear()
+    st.session_state.clear()
     logging.info("Quitting for authentication")
     st.stop()
 elif authentication_status == None:
     with st.sidebar:
         st.warning('Please enter your username and password')
     st.cache_resource.clear()
+    st.session_state.clear()
     logging.info("Quitting for authentication")
     st.stop()
 
@@ -256,8 +258,8 @@ if question:
         response_placeholder = st.empty()
 
         history = memory.load_memory_variables({})
-        print(f"Getting LLM response for: {question}")
-        print(f"Using memory: {history}")
+        #print(f"Getting LLM response for: {question}")
+        #print(f"Using memory: {history}")
 
         callback = StreamHandler(response_placeholder)
 
@@ -295,10 +297,9 @@ if question:
             "question": lambda x: x["question"]
         }) | prompt | model
 
-
         response = chain.invoke({'question': question, 'history': history})
 
-        print(f"Response: {response}")
+        #print(f"Response: {response}")
 
         # Write the final answer without the cursor
         response_placeholder.markdown(response.content)
