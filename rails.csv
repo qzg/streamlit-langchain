@@ -5,3 +5,11 @@ postnl,2,Wat is PostNL?
 postnl,3,Wat nou als ik veel pakketten moet versturen?
 postnl,4,Vertel me meer over de haalservice
 postnl,5,Schrijf een mail voor een prospect over de haalservice
+postnl,6,Wat zijn de duurzaamheidsvoordelen van de haalservice?
+datastax,0,Try the following prompts 🤩
+datastax,1,(copy and paste in the chat box)
+datastax,2,What is DataStax?
+datastax,3,What is Vector Search?
+datastax,4,Tell me more about why Astra DB is the best!
+datastax,5,Write an email for a prospect about Astra DB
+datastax,6,What advantages does Astra DB offer for Generative AI?
