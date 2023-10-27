@@ -2,7 +2,6 @@ import tempfile
 from logging import getLogger
 import os
 import pandas as pd
-from operator import itemgetter
 import yaml
 from yaml.loader import SafeLoader
 
@@ -25,8 +24,8 @@ from langchain.schema.runnable import RunnableMap
 
 from langchain.document_loaders import PyPDFLoader
 
+# Get logging
 log = getLogger()
-log.info('Starting app')
 
 # Streaming call back handler for responses
 class StreamHandler(BaseCallbackHandler):
@@ -108,10 +107,6 @@ def vectorize_text(uploaded_file):
             vectorstore.add_documents(pages)  
             st.info(f"{len(pages)} {lang_dict['load_pdf']}")
 
-# Function to drop previously existing vector data
-def drop_vector_data(username):
-    session.execute(f"DROP TABLE IF EXISTS vector_preview.vector_context_{username}")
-
 #################
 ### Constants ###
 #################
@@ -125,6 +120,7 @@ lang_options = {
     '🇺🇸 English User interface':'en_US',
     '🇳🇱 Nederlandse gebruikers interface':'nl_NL'
 }
+
 # Select the language
 #with st.sidebar:
 #    locale = st.selectbox(label='Language', label_visibility="hidden", options=list(lang_options.keys()))
@@ -134,6 +130,8 @@ lang_dict = localization('en_US')
 ######################
 ### Authentication ###
 ######################
+
+st.title(lang_dict['title'])
 
 authenticator = get_authenticator()
 name, authentication_status, username = authenticator.login('Login', 'sidebar')
@@ -174,8 +172,6 @@ if authentication_status:
     ################
     ### Main app ###
     ################
-
-    st.title(lang_dict['title'])
 
     # Include the upload form for new data to be Vectorized
     with st.sidebar:
