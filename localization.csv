@@ -15,8 +15,8 @@ en_US,load_context,Upload a document for additional context
 nl_NL,load_context,Upload een document voor additionele context
 en_US,load_context_button,Save
 nl_NL,load_context_button,Opslaan
-en_US,drop_context,Delete the context and start over. Also clears the chat history!
-nl_NL,drop_context,Verwijder de contextuele data en begin opnieuw. Verwijderd ook de chat historie!
+en_US,drop_context,"Delete the context, history and start over. This deletes embeddings for ALL users!"
+nl_NL,drop_context,"Verwijder de context, historie en begin opnieuw. Dit verwijderd embeddings voor ALLE gebruikers!"
 en_US,dropping_context,Removing context and intialising...
 nl_NL,dropping_context,Context verwijderen en herinitialiseren...
 en_US,drop_context_button,Delete context

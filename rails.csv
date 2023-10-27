@@ -13,3 +13,5 @@ datastax,3,What is Vector Search?
 datastax,4,Tell me more about why Astra DB is the best!
 datastax,5,Write an email for a prospect about Astra DB
 datastax,6,What advantages does Astra DB offer for Generative AI?
+datastax,7,What strategies exits for meaningful agent interaction
+datastax,8,How can I user Astra DB in a RAG application?
