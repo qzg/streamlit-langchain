@@ -220,11 +220,11 @@ with st.sidebar:
     model = load_model()
 
 # Cache Conversational Chain for future runs
-with st.sidebar:
-    @st.cache_resource(show_spinner="Getting the Conversational Chain...")
-    def load_chain():
+#with st.sidebar:
+#    @st.cache_resource(show_spinner="Getting the Conversational Chain...")
+def load_chain():
 
-        template = """
+    template = """
 You're a helpful AI assistent tasked to answer the user's questions.
 You're friendly and you answer extensively with multiple sentences. You prefer to use bulletpoints to summarize.
 If you don't know the answer, just say 'I do not know the answer'.
@@ -241,16 +241,16 @@ Question:
 Answer in the user's language:
 """
 
-        prompt = ChatPromptTemplate.from_template(template)
+    prompt = ChatPromptTemplate.from_template(template)
 
-        chain = RunnableMap({
-            "context": lambda x: retriever.get_relevant_documents(x["question"]),
-            "history": lambda x: x["history"],
-            "question": lambda x: x["question"]
-        }) | prompt | model
+    chain = RunnableMap({
+        "context": lambda x: retriever.get_relevant_documents(x["question"]),
+        "history": lambda x: x["history"],
+        "question": lambda x: x["question"]
+    }) | prompt | model
 
-        return chain
-    chain = load_chain()
+    return chain
+chain = load_chain()
 
 ################
 ### Main app ###
