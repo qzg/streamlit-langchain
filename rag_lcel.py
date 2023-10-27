@@ -98,7 +98,7 @@ def vectorize_text(uploaded_file):
             docs = []
             temp_dir = tempfile.TemporaryDirectory()
             file = uploaded_file
-            #logging.info("""Processing: {file}""")
+            logging.info("""Processing: {file}""")
             temp_filepath = os.path.join(temp_dir.name, file.name)
             with open(temp_filepath, "wb") as f:
                 f.write(file.getvalue())
@@ -137,13 +137,13 @@ elif authentication_status == False:
     with st.sidebar:
         st.error('Username/password is incorrect')
     st.cache_resource.clear()
-    #logging.info("Quitting for authentication")
+    logging.info("Quitting for authentication")
     st.stop()
 elif authentication_status == None:
     with st.sidebar:
         st.warning('Please enter your username and password')
     st.cache_resource.clear()
-    #logging.info("Quitting for authentication")
+    logging.info("Quitting for authentication")
     st.stop()
 
 # Select the rails experience
@@ -215,7 +215,7 @@ with st.sidebar:
         return ChatOpenAI(
             openai_api_key=st.secrets["OPENAI_API_KEY"],
             streaming=True,
-            verbose=False,
+            verbose=True,
             )
     model = load_model()
 
@@ -311,11 +311,11 @@ if prompt:
         response_placeholder = st.empty()
 
         history = memory.load_memory_variables({})
-        #logging.info(f"Getting LLM response for: {prompt}")
-        #logging.info(f"Using memory: {history}")
+        logging.info(f"Getting LLM response for: {prompt}")
+        logging.info(f"Using memory: {history}")
         callback = StreamHandler(response_placeholder)
         response = chain.invoke({'question': prompt, 'history': history}, config={'callbacks':[callback]})
-        #logging.info(f"Response: {response}")
+        logging.info(f"Response: {response}")
 
         # Write the final answer without the cursor
         response_placeholder.markdown(response.content)
