@@ -177,80 +177,20 @@ with st.sidebar:
     session = load_session()
 
 # Cache OpenAI Embedding for future runs
-#with st.sidebar:
-#    @st.cache_resource(show_spinner=lang_dict['get_embedding'])
-def load_embedding():
-    # Get the OpenAI Embedding
-    return OpenAIEmbeddings(openai_api_key=st.secrets["OPENAI_API_KEY"])
-embedding = load_embedding()
+embedding = OpenAIEmbeddings(openai_api_key=st.secrets["OPENAI_API_KEY"])
 
 # Cache Vector Store for future runs
-with st.sidebar:
-    @st.cache_resource(show_spinner=lang_dict['get_vectorstore'])
-    def load_vectorstore(username):
-        # Get the vector store from Astra DB
-        return Cassandra(
-            embedding=embedding,
-            session=session,
-            keyspace='vector_preview',
-            table_name=f"vector_context_{username}"
-        )
-    vectorstore = load_vectorstore(username)
+vectorstore = Cassandra(
+    embedding=embedding,
+    session=session,
+    keyspace='vector_preview',
+    table_name=f"vector_context_{username}"
+)
 
 # Cache Retriever for future runs
-#with st.sidebar:
- #   @st.cache_resource(show_spinner=lang_dict['get_retriever'])
-def load_retriever():
-    # Get the Retriever from the Vectorstore
-    return vectorstore.as_retriever(
+retriever = vectorstore.as_retriever(
         search_kwargs={"k": top_k}
     )
-retriever = load_retriever()
-
-# Cache OpenAI Chat Model for future runs
-#with st.sidebar:
-#    @st.cache_resource(show_spinner=lang_dict['get_model'])
-def load_model():
-    # Get the OpenAI Chat Model
-    return ChatOpenAI(
-        openai_api_key=st.secrets["OPENAI_API_KEY"],
-        streaming=True,
-        verbose=True,
-        )
-model = load_model()
-
-# Cache Conversational Chain for future runs
-#with st.sidebar:
-#    @st.cache_resource(show_spinner="Getting the Conversational Chain...")
-def load_chain():
-
-    template = """
-You're a helpful AI assistent tasked to answer the user's questions.
-You're friendly and you answer extensively with multiple sentences. You prefer to use bulletpoints to summarize.
-If you don't know the answer, just say 'I do not know the answer'.
-
-Use the following context to answer the question:
-{context}
-
-Use the previous chat history to answer the question:
-{history}
-
-Question:
-{question}
-
-Answer in the user's language:
-"""
-
-    prompt = ChatPromptTemplate.from_template(template)
-
-    chain = RunnableMap({
-        "context": lambda x: retriever.get_relevant_documents(x["question"]),
-        "history": lambda x: x["history"],
-        "question": lambda x: x["question"]
-    }) | prompt | model
-
-    return chain
-chain = load_chain()
 
 ################
 ### Main app ###
@@ -275,7 +215,12 @@ if username == "michel":
             if submitted:
                 with st.spinner(lang_dict['dropping_context']):
                     vectorstore.clear()
-                    vectorstore = load_vectorstore(username)
+                    vectorstore = Cassandra(
+                        embedding=embedding,
+                        session=session,
+                        keyspace='vector_preview',
+                        table_name=f"vector_context_{username}"
+                    )
                     st.session_state["messages"] = [AIMessage(content=lang_dict['assistant_welcome'])]
                     memory.clear()
 
@@ -296,14 +241,14 @@ for message in st.session_state.messages:
     st.chat_message(message.type).markdown(message.content)
 
 # Now get a prompt from a user
-prompt = st.chat_input(lang_dict['assistant_question'])
-if prompt:
+question = st.chat_input(lang_dict['assistant_question'])
+if question:
      # Add the prompt to messages, stored in session state
-    st.session_state.messages.append(HumanMessage(content=prompt))
+    st.session_state.messages.append(HumanMessage(content=question))
 
     # Draw the prompt on the page
     with st.chat_message("human"):
-        st.markdown(prompt)
+        st.markdown(question)
 
     # Get the results from Langchain
     with st.chat_message("assistant"):
@@ -311,17 +256,55 @@ if prompt:
         response_placeholder = st.empty()
 
         history = memory.load_memory_variables({})
-        logging.info(f"Getting LLM response for: {prompt}")
-        logging.info(f"Using memory: {history}")
+        print(f"Getting LLM response for: {question}")
+        print(f"Using memory: {history}")
+
         callback = StreamHandler(response_placeholder)
-        response = chain.invoke({'question': prompt, 'history': history}, config={'callbacks':[callback]})
-        logging.info(f"Response: {response}")
+
+        # Cache OpenAI Chat Model for future runs
+        model = ChatOpenAI(
+            openai_api_key=st.secrets["OPENAI_API_KEY"],
+            streaming=True,
+            verbose=True,
+            callbacks=[callback]
+            )
+
+        # Cache Conversational Chain for future runs
+        template = """
+        You're a helpful AI assistent tasked to answer the user's questions.
+        You're friendly and you answer extensively with multiple sentences. You prefer to use bulletpoints to summarize.
+        If you don't know the answer, just say 'I do not know the answer'.
+
+        Use the following context to answer the question:
+        {context}
+
+        Use the previous chat history to answer the question:
+        {history}
+
+        Question:
+        {question}
+
+        Answer in the user's language:
+        """
+
+        prompt = ChatPromptTemplate.from_template(template)
+
+        chain = RunnableMap({
+            "context": lambda x: retriever.get_relevant_documents(x["question"]),
+            "history": lambda x: x["history"],
+            "question": lambda x: x["question"]
+        }) | prompt | model
+
+
+        response = chain.invoke({'question': question, 'history': history})
+
+        print(f"Response: {response}")
 
         # Write the final answer without the cursor
         response_placeholder.markdown(response.content)
 
         # Add the result to memory
-        memory.save_context({'question': prompt}, {"output": response.content})
+        memory.save_context({'question': question}, {"output": response.content})
 
         # Add the answer to the messages session state
         st.session_state.messages.append(AIMessage(content=response.content))
