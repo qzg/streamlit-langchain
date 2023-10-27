@@ -177,12 +177,12 @@ with st.sidebar:
     session = load_session()
 
 # Cache OpenAI Embedding for future runs
-with st.sidebar:
-    @st.cache_resource(show_spinner=lang_dict['get_embedding'])
-    def load_embedding():
-        # Get the OpenAI Embedding
-        return OpenAIEmbeddings(openai_api_key=st.secrets["OPENAI_API_KEY"])
-    embedding = load_embedding()
+#with st.sidebar:
+#    @st.cache_resource(show_spinner=lang_dict['get_embedding'])
+def load_embedding():
+    # Get the OpenAI Embedding
+    return OpenAIEmbeddings(openai_api_key=st.secrets["OPENAI_API_KEY"])
+embedding = load_embedding()
 
 # Cache Vector Store for future runs
 with st.sidebar:
@@ -198,26 +198,26 @@ with st.sidebar:
     vectorstore = load_vectorstore(username)
 
 # Cache Retriever for future runs
-with st.sidebar:
-    @st.cache_resource(show_spinner=lang_dict['get_retriever'])
-    def load_retriever():
-        # Get the Retriever from the Vectorstore
-        return vectorstore.as_retriever(
-            search_kwargs={"k": top_k}
-        )
-    retriever = load_retriever()
+#with st.sidebar:
+ #   @st.cache_resource(show_spinner=lang_dict['get_retriever'])
+def load_retriever():
+    # Get the Retriever from the Vectorstore
+    return vectorstore.as_retriever(
+        search_kwargs={"k": top_k}
+    )
+retriever = load_retriever()
 
 # Cache OpenAI Chat Model for future runs
-with st.sidebar:
-    @st.cache_resource(show_spinner=lang_dict['get_model'])
-    def load_model():
-        # Get the OpenAI Chat Model
-        return ChatOpenAI(
-            openai_api_key=st.secrets["OPENAI_API_KEY"],
-            streaming=True,
-            verbose=True,
-            )
-    model = load_model()
+#with st.sidebar:
+#    @st.cache_resource(show_spinner=lang_dict['get_model'])
+def load_model():
+    # Get the OpenAI Chat Model
+    return ChatOpenAI(
+        openai_api_key=st.secrets["OPENAI_API_KEY"],
+        streaming=True,
+        verbose=True,
+        )
+model = load_model()
 
 # Cache Conversational Chain for future runs
 #with st.sidebar:
