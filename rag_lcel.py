@@ -98,7 +98,7 @@ def vectorize_text(uploaded_file):
             docs = []
             temp_dir = tempfile.TemporaryDirectory()
             file = uploaded_file
-            logger.info("""Processing: {file}""")
+            #logging.info("""Processing: {file}""")
             temp_filepath = os.path.join(temp_dir.name, file.name)
             with open(temp_filepath, "wb") as f:
                 f.write(file.getvalue())
@@ -267,16 +267,17 @@ with st.sidebar:
             vectorize_text(uploaded_file)
 
 # Drop the vector data and start from scratch
-with st.sidebar:
-    with st.form('drop'):
-        st.caption(lang_dict['drop_context'])
-        submitted = st.form_submit_button(lang_dict['drop_context_button'])
-        if submitted:
-            with st.spinner(lang_dict['dropping_context']):
-                vectorstore.clear()
-                vectorstore = load_vectorstore(username)
-                st.session_state["messages"] = [AIMessage(content=lang_dict['assistant_welcome'])]
-                memory.clear()
+if username == "michel":
+    with st.sidebar:
+        with st.form('drop'):
+            st.caption(lang_dict['drop_context'])
+            submitted = st.form_submit_button(lang_dict['drop_context_button'])
+            if submitted:
+                with st.spinner(lang_dict['dropping_context']):
+                    vectorstore.clear()
+                    vectorstore = load_vectorstore(username)
+                    st.session_state["messages"] = [AIMessage(content=lang_dict['assistant_welcome'])]
+                    memory.clear()
 
 # Draw rails
 with st.sidebar:

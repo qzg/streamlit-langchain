@@ -15,3 +15,7 @@ datastax,5,Write an email for a prospect about Astra DB
 datastax,6,What advantages does Astra DB offer for Generative AI?
 datastax,7,What strategies exits for meaningful agent interaction
 datastax,8,How can I user Astra DB in a RAG application?
+michel,0,🤩 Try the following prompts ⬇️
+michel,1,(copy and paste in the chat box)
+michel,2,"Hallo, ik ben Michel"
+michel,3,Wie ben ik?
