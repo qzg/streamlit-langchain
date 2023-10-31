@@ -35,9 +35,6 @@ from langchain.prompts import ChatPromptTemplate
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.schema.runnable import RunnableMap
 
-from langchain.callbacks import LangChainTracer
-from langsmith import Client
-
 print("Started")
 
 #################
@@ -194,9 +191,10 @@ def load_model():
     print("load_model")
     # Get the OpenAI Chat Model
     return ChatOpenAI(
-        model='gpt-3.5-turbo-16k',
+        temperature=0.3,
+        model='gpt-3.5-turbo',
         streaming=True,
-        verbose=False
+        verbose=True
     )
 
 # Cache Chat History for future runs
@@ -323,13 +321,13 @@ if authentication_status != None:
             history = memory.load_memory_variables({})
             print(f"Using memory: {history}")
 
-            chain = RunnableMap({
+            ingress = RunnableMap({
                 'context': lambda x: retriever.get_relevant_documents(x['question']),
                 'chat_history': lambda x: x['chat_history'],
                 'question': lambda x: x['question']
-            }) | prompt | model
+            })
+            chain = ingress | prompt | model
 
-            #response = chain.invoke({'question': question, 'chat_history': history}, config={'callbacks':[callback]})
             full_response = ""
             for chunk in chain.stream({'question': question, 'chat_history': history}):
                 full_response += chunk.content
