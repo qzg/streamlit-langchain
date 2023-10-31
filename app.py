@@ -365,7 +365,7 @@ if authentication_status != None:
             st.session_state.messages.append(AIMessage(content=full_response))
 
     with st.sidebar:
-                st.caption("v3110_04")
+                st.caption("v3110_05")
 
 elif authentication_status == False:
     with st.sidebar:
