@@ -1,5 +1,13 @@
-import logging
+import os
 import streamlit as st
+os.environ["OPENAI_API_KEY"] = st.secrets['OPENAI_API_KEY']
+os.environ["LANGCHAIN_API_KEY"] = st.secrets['LANGCHAIN_API_KEY']
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_ENDPOINT"] = st.secrets['LANGCHAIN_ENDPOINT']
+os.environ["LANGCHAIN_PROJECT"] = st.secrets['LANGCHAIN_PROJECT']
+
+import logging
+
 import streamlit_authenticator as stauth
 import yaml
 from yaml.loader import SafeLoader
@@ -17,7 +25,7 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.memory import CassandraChatMessageHistory
 
-import os
+
 import tempfile
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PyPDFLoader
@@ -26,25 +34,9 @@ from langchain.schema import HumanMessage, AIMessage
 from langchain.prompts import ChatPromptTemplate
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.schema.runnable import RunnableMap
-from langchain.chains import RetrievalQA, ConversationalRetrievalChain
 
-from typing import Any, List, Dict
-
-# Streaming call back handler for responses
-class StreamHandler(BaseCallbackHandler):
-    def __init__(self, container, initial_text=''):
-        self.container = container
-        self.text = initial_text
-
-    def on_llm_start(
-        self, serialized: Dict[str, Any], prompts: List[str], **kwargs: Any
-    ) -> None:
-        """Run when LLM starts running."""
-        self.text = ''
-
-    def on_llm_new_token(self, token: str, **kwargs):
-        self.text += token
-        self.container.markdown(self.text + '▌')
+from langchain.callbacks import LangChainTracer
+from langsmith import Client
 
 print("Started")
 
@@ -173,7 +165,7 @@ def load_session():
 def load_embedding():
     print("load_embedding")
     # Get the OpenAI Embedding
-    return OpenAIEmbeddings(openai_api_key=st.secrets["OPENAI_API_KEY"])
+    return OpenAIEmbeddings()
 
 # Cache Vector Store for future runs
 @st.cache_resource(show_spinner=lang_dict['load_vectorstore'])
@@ -203,7 +195,6 @@ def load_model():
     # Get the OpenAI Chat Model
     return ChatOpenAI(
         model='gpt-3.5-turbo-16k',
-        openai_api_key=st.secrets['OPENAI_API_KEY'],
         streaming=True,
         verbose=False
     )
@@ -328,18 +319,9 @@ if authentication_status != None:
         with st.chat_message('assistant'):
             # UI placeholder to start filling with agent response
             response_placeholder = st.empty()
-            callback = StreamHandler(response_placeholder)
 
             history = memory.load_memory_variables({})
             print(f"Using memory: {history}")
-
-            chain = RetrievalQA.from_chain_type(
-                llm=model,
-                retriever=retriever,
-                return_source_documents=False,
-                verbose=False,
-                chain_type_kwargs={"prompt": prompt}
-            )
 
             chain = RunnableMap({
                 'context': lambda x: retriever.get_relevant_documents(x['question']),
@@ -365,7 +347,7 @@ if authentication_status != None:
             st.session_state.messages.append(AIMessage(content=full_response))
 
     with st.sidebar:
-                st.caption("v3110_05")
+                st.caption("v3110_06")
 
 elif authentication_status == False:
     with st.sidebar:
