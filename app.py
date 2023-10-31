@@ -310,14 +310,18 @@ if authentication_status != None:
         st.session_state.messages.append(HumanMessage(content=question))
 
         # Draw the prompt on the page
+        print(f"Draw prompt")
         with st.chat_message('human'):
             st.markdown(question)
 
         # Get the results from Langchain
+        print(f"Chat message")
         with st.chat_message('assistant'):
             # UI placeholder to start filling with agent response
+            print(f"Response placeholder")
             response_placeholder = st.empty()
 
+            print(f"Get history")
             history = memory.load_memory_variables({})
             print(f"Using memory: {history}")
 
@@ -328,6 +332,7 @@ if authentication_status != None:
             })
             chain = ingress | prompt | model
 
+            print(f"chain: {chain}")
             full_response = ""
             for chunk in chain.stream({'question': question, 'chat_history': history}):
                 full_response += chunk.content
