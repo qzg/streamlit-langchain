@@ -26,12 +26,21 @@ from langchain.schema import HumanMessage, AIMessage
 from langchain.prompts import ChatPromptTemplate
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.schema.runnable import RunnableMap
+from langchain.chains import RetrievalQA, ConversationalRetrievalChain
+
+from typing import Any, List, Dict
 
 # Streaming call back handler for responses
 class StreamHandler(BaseCallbackHandler):
     def __init__(self, container, initial_text=''):
         self.container = container
         self.text = initial_text
+
+    def on_llm_start(
+        self, serialized: Dict[str, Any], prompts: List[str], **kwargs: Any
+    ) -> None:
+        """Run when LLM starts running."""
+        self.text = ''
 
     def on_llm_new_token(self, token: str, **kwargs):
         self.text += token
@@ -196,7 +205,7 @@ def load_model():
         model='gpt-3.5-turbo-16k',
         openai_api_key=st.secrets['OPENAI_API_KEY'],
         streaming=True,
-        verbose=True
+        verbose=False
     )
 
 # Cache Chat History for future runs
@@ -216,7 +225,10 @@ def load_memory():
     return ConversationBufferWindowMemory(
         chat_memory=chat_history,
         return_messages=True,
-        k=top_k_memory
+        k=top_k_memory,
+        memory_key="chat_history",
+        input_key="question",
+        output_key='answer',
     )
 
 # Cache prompt
@@ -231,7 +243,7 @@ Use the following context to answer the question:
 {context}
 
 Use the previous chat history to answer the question:
-{history}
+{chat_history}
 
 Question:
 {question}
@@ -321,28 +333,39 @@ if authentication_status != None:
             history = memory.load_memory_variables({})
             print(f"Using memory: {history}")
 
+            chain = RetrievalQA.from_chain_type(
+                llm=model,
+                retriever=retriever,
+                return_source_documents=False,
+                verbose=False,
+                chain_type_kwargs={"prompt": prompt}
+            )
+
             chain = RunnableMap({
                 'context': lambda x: retriever.get_relevant_documents(x['question']),
-                'history': lambda x: x['history'],
+                'chat_history': lambda x: x['chat_history'],
                 'question': lambda x: x['question']
             }) | prompt | model
 
-            #response = chain.invoke({'question': question, 'history': history}, config={'callbacks':[callback]})
-            response = chain.invoke({'question': question, 'history': history})
+            #response = chain.invoke({'question': question, 'chat_history': history}, config={'callbacks':[callback]})
+            full_response = ""
+            for chunk in chain.stream({'question': question, 'chat_history': history}):
+                full_response += chunk.content
+                response_placeholder.markdown(full_response + "▌")
 
-            print(f"Response: {response}")
+            print(f"Response: {full_response}")
 
             # Write the final answer without the cursor
-            response_placeholder.markdown(response.content)
+            response_placeholder.markdown(full_response)
 
             # Add the result to memory
-            memory.save_context({'question': question}, {'output': response.content})
+            memory.save_context({'question': question}, {'answer': full_response})
 
             # Add the answer to the messages session state
-            st.session_state.messages.append(AIMessage(content=response.content))
+            st.session_state.messages.append(AIMessage(content=full_response))
 
             with st.sidebar:
-                st.caption("v3110_03")
+                st.caption("v3110_04")
 
 elif authentication_status == False:
     with st.sidebar:
