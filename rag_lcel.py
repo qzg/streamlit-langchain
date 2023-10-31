@@ -17,6 +17,7 @@ from langchain.embeddings import OpenAIEmbeddings
 
 from langchain.schema import HumanMessage, AIMessage
 from langchain.memory import ConversationBufferWindowMemory
+from langchain.memory import CassandraChatMessageHistory
 from langchain.prompts import ChatPromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.callbacks.base import BaseCallbackHandler
@@ -127,11 +128,52 @@ lang_options = {
 #    lang_dict = localization(lang_options[locale])
 lang_dict = localization('en_US')
 
+#######################
+### Resources Cache ###
+#######################
+
+# Cache Astra DB session for future runs
+with st.sidebar:
+    @st.cache_resource(show_spinner=lang_dict['connect_astra'])
+    def load_session():
+        # Connect to Astra DB
+        cluster = Cluster(cloud={'secure_connect_bundle': st.secrets['ASTRA_SCB_PATH']}, 
+                        auth_provider=PlainTextAuthProvider(st.secrets['ASTRA_CLIENT_ID'], 
+                                                            st.secrets['ASTRA_CLIENT_SECRET']))
+        return cluster.connect()
+
+
+# Cache Vector Store for future runs
+@st.cache_resource(show_spinner=lang_dict['get_vectorstore'])
+def load_vectorstore(_session, id):
+    return Cassandra(
+        embedding=OpenAIEmbeddings(openai_api_key=st.secrets['OPENAI_API_KEY']),
+        session=session,
+        keyspace='vector_preview',
+        table_name=f"vector_context_{id}"
+    )
+
+# Cache Retriever for future runs
+@st.cache_resource(show_spinner=lang_dict['get_retriever'])
+def load_retriever(_vectorstore, top_k):
+    # Get the Retriever from the Vectorstore
+    return vectorstore.as_retriever(
+        search_kwargs={"k": top_k}
+    )
+
+# Cache Chat Memory in Astra DB for future runs
+@st.cache_resource(show_spinner=lang_dict['get_message_history'])
+def load_chat_memory(_session, id):
+    return CassandraChatMessageHistory(
+        session_id=id,
+        session=session,
+        keyspace='vector_preview',
+        ttl_seconds = 864000 # Ten days
+    )
+
 ######################
 ### Authentication ###
 ######################
-
-st.title(lang_dict['title'])
 
 authenticator = get_authenticator()
 name, authentication_status, username = authenticator.login('Login', 'sidebar')
@@ -139,39 +181,20 @@ name, authentication_status, username = authenticator.login('Login', 'sidebar')
 if authentication_status:
     authenticator.logout('Logout', 'sidebar')
 
+    with st.sidebar:
+        session = load_session()
+        vectorstore = load_vectorstore(session, username)
+        retriever = load_retriever(vectorstore, top_k_vectorstore)
+        chat_memory = load_chat_memory(session, username)
+
     # Select the rails experience
     rails_dict = rails(username)
-
-    #######################
-    ### Resources Cache ###
-    #######################
-
-    # Cache Astra DB session for future runs
-    with st.sidebar:
-        @st.cache_resource(show_spinner=lang_dict['connect_astra'])
-        def load_session():
-            # Connect to Astra DB
-            cluster = Cluster(cloud={'secure_connect_bundle': st.secrets['ASTRA_SCB_PATH']}, 
-                            auth_provider=PlainTextAuthProvider(st.secrets['ASTRA_CLIENT_ID'], 
-                                                                st.secrets['ASTRA_CLIENT_SECRET']))
-            return cluster.connect()
-        session = load_session()
-
-    # Cache Vector Store for future runs
-    with st.sidebar:
-        @st.cache_resource(show_spinner=lang_dict['get_vectorstore'])
-        def load_vectorstore(username):
-            return Cassandra(
-                embedding=OpenAIEmbeddings(openai_api_key=st.secrets['OPENAI_API_KEY']),
-                session=session,
-                keyspace='vector_preview',
-                table_name=f"vector_context_{username}"
-            )
-        vectorstore = load_vectorstore(username)
 
     ################
     ### Main app ###
     ################
+
+    st.title(lang_dict['title'])
 
     # Include the upload form for new data to be Vectorized
     with st.sidebar:
@@ -204,6 +227,7 @@ if authentication_status:
     # Start with empty memory
     if 'memory' not in st.session_state:
         st.session_state.memory = ConversationBufferWindowMemory(
+            chat_memory=chat_memory,
             return_messages=True,
             k=top_k_memory
         )
@@ -236,7 +260,7 @@ if authentication_status:
 
             callback = StreamHandler(response_placeholder)
 
-            # Cache OpenAI Chat Model for future runs
+            # Create OpenAI Chat Model for future runs
             model = ChatOpenAI(
                 model='gpt-3.5-turbo-16k',
                 openai_api_key=st.secrets['OPENAI_API_KEY'],
@@ -245,27 +269,21 @@ if authentication_status:
                 callbacks=[callback]
                 )
 
-            retriever = vectorstore.as_retriever(
-                    search_kwargs={'k': top_k_vectorstore}
-                )
+            # Create Conversational Chain for future runs
+            template = """You're a helpful AI assistent tasked to answer the user's questions.
+You're friendly and you answer extensively with multiple sentences. You prefer to use bulletpoints to summarize.
+If you don't know the answer, just say 'I do not know the answer'.
 
-            # Cache Conversational Chain for future runs
-            template = """
-            You're a helpful AI assistent tasked to answer the user's questions.
-            You're friendly and you answer extensively with multiple sentences. You prefer to use bulletpoints to summarize.
-            If you don't know the answer, just say 'I do not know the answer'.
+Use the following context to answer the question:
+{context}
 
-            Use the following context to answer the question:
-            {context}
+Use the previous chat history to answer the question:
+{history}
 
-            Use the previous chat history to answer the question:
-            {history}
+Question:
+{question}
 
-            Question:
-            {question}
-
-            Answer in the user's language:
-            """
+Answer in the user's language:"""
 
             prompt = ChatPromptTemplate.from_template(template)
 
@@ -293,10 +311,10 @@ elif authentication_status == False:
         st.error('Username/password is incorrect')
     st.cache_resource.clear()
     st.session_state.clear()
-    log.info('Quitting for authentication')
+    log.info('Username/password is incorrect')
 elif authentication_status == None:
     with st.sidebar:
         st.warning('Please enter your username and password')
     st.cache_resource.clear()
     st.session_state.clear()
-    log.info('Quitting for authentication')
+    log.info('Please enter your username and password')
