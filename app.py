@@ -327,7 +327,8 @@ if authentication_status != None:
                 'question': lambda x: x['question']
             }) | prompt | model
 
-            response = chain.invoke({'question': question, 'history': history}, config={'callbacks':[callback]})
+            #response = chain.invoke({'question': question, 'history': history}, config={'callbacks':[callback]})
+            response = chain.invoke({'question': question, 'history': history})
 
             print(f"Response: {response}")
 
@@ -339,6 +340,9 @@ if authentication_status != None:
 
             # Add the answer to the messages session state
             st.session_state.messages.append(AIMessage(content=response.content))
+
+            with st.sidebar:
+                st.caption("v3110_03")
 
 elif authentication_status == False:
     with st.sidebar:
