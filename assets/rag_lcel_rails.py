@@ -175,9 +175,7 @@ if "memory" not in st.session_state:
     )
 memory = st.session_state["memory"]
 
-#######################
-### Resources Cache ###
-#######################
+
 
 # Cache Astra DB session for future runs
 with st.sidebar:

@@ -73,7 +73,7 @@ def rails(username):
     return rails_dict
 
 # Function for Vectorizing uploaded data into Astra DB
-def vectorize_text(uploaded_file):
+def vectorize_text(uploaded_file, vectorstore):
     docs = []
     if uploaded_file is not None:
         if uploaded_file.name.endswith('txt'):
@@ -128,49 +128,6 @@ lang_options = {
 #    lang_dict = localization(lang_options[locale])
 lang_dict = localization('en_US')
 
-#######################
-### Resources Cache ###
-#######################
-
-# Cache Astra DB session for future runs
-with st.sidebar:
-    @st.cache_resource(show_spinner=lang_dict['connect_astra'])
-    def load_session():
-        # Connect to Astra DB
-        cluster = Cluster(cloud={'secure_connect_bundle': st.secrets['ASTRA_SCB_PATH']}, 
-                        auth_provider=PlainTextAuthProvider(st.secrets['ASTRA_CLIENT_ID'], 
-                                                            st.secrets['ASTRA_CLIENT_SECRET']))
-        return cluster.connect()
-
-
-# Cache Vector Store for future runs
-@st.cache_resource(show_spinner=lang_dict['get_vectorstore'])
-def load_vectorstore(_session, id):
-    return Cassandra(
-        embedding=OpenAIEmbeddings(openai_api_key=st.secrets['OPENAI_API_KEY']),
-        session=session,
-        keyspace='vector_preview',
-        table_name=f"vector_context_{id}"
-    )
-
-# Cache Retriever for future runs
-@st.cache_resource(show_spinner=lang_dict['get_retriever'])
-def load_retriever(_vectorstore, top_k):
-    # Get the Retriever from the Vectorstore
-    return vectorstore.as_retriever(
-        search_kwargs={"k": top_k}
-    )
-
-# Cache Chat Memory in Astra DB for future runs
-@st.cache_resource(show_spinner=lang_dict['get_message_history'])
-def load_chat_memory(_session, id):
-    return CassandraChatMessageHistory(
-        session_id=id,
-        session=session,
-        keyspace='vector_preview',
-        ttl_seconds = 864000 # Ten days
-    )
-
 ######################
 ### Authentication ###
 ######################
@@ -181,11 +138,46 @@ name, authentication_status, username = authenticator.login('Login', 'sidebar')
 if authentication_status:
     authenticator.logout('Logout', 'sidebar')
 
-    with st.sidebar:
-        session = load_session()
-        vectorstore = load_vectorstore(session, username)
-        retriever = load_retriever(vectorstore, top_k_vectorstore)
-        chat_memory = load_chat_memory(session, username)
+    if 'cluster' not in st.session_state:
+        st.session_state.cluster = Cluster(
+            cloud={'secure_connect_bundle': st.secrets['ASTRA_SCB_PATH']}, 
+            auth_provider=PlainTextAuthProvider(
+                st.secrets['ASTRA_CLIENT_ID'], 
+                st.secrets['ASTRA_CLIENT_SECRET']
+            )
+        )
+
+    if 'vectorstore' not in st.session_state and 'cluster' in st.session_state:
+        st.session_state.vectorstore = Cassandra(
+            embedding=OpenAIEmbeddings(openai_api_key=st.secrets['OPENAI_API_KEY']),
+            session=st.session_state.cluster,
+            keyspace='vector_preview',
+            table_name=f"vector_context_{username}"
+        )
+
+    if 'retriever' not in st.session_state and 'vectorstore' in st.session_state:
+        st.session_state.retriever = st.session_state.vectorstore.as_retriever(
+        search_kwargs={"k": top_k_vectorstore}
+    )
+
+    if 'chat_memory' not in st.session_state and 'cluster' in st.session_state:
+        st.session_state.chat_memory = CassandraChatMessageHistory(
+            session_id=username,
+            session=st.session_state.cluster,
+            keyspace='vector_preview',
+            ttl_seconds = 864000 # Ten days
+        )
+
+    if 'memory' not in st.session_state and 'chat_memory' in st.session_state:
+        st.session_state.memory = ConversationBufferWindowMemory(
+            chat_memory=st.session_state.chat_memory,
+            return_messages=True,
+            k=top_k_memory
+        )
+
+    # Start with empty messages, stored in session state
+    if 'messages' not in st.session_state:
+        st.session_state.messages = [AIMessage(content=lang_dict['assistant_welcome'])]
 
     # Select the rails experience
     rails_dict = rails(username)
@@ -202,7 +194,7 @@ if authentication_status:
             uploaded_file = st.file_uploader(lang_dict['load_context'], type=['txt', 'pdf'], )
             submitted = st.form_submit_button(lang_dict['load_context_button'])
             if submitted:
-                vectorize_text(uploaded_file)
+                vectorize_text(uploaded_file, st.session_state.vectorstore)
 
     # Drop the vector data and start from scratch
     if username == 'michel':
@@ -212,7 +204,7 @@ if authentication_status:
                 submitted = st.form_submit_button(lang_dict['drop_context_button'])
                 if submitted:
                     with st.spinner(lang_dict['dropping_context']):
-                        vectorstore.clear()
+                        st.session_state.vectorstore.clear()
                         st.session_state.messages = [AIMessage(content=lang_dict['assistant_welcome'])]
                         st.session_state.memory.clear()
 
@@ -223,18 +215,6 @@ if authentication_status:
             for i in rails_dict:
                 if i>1:
                     st.markdown(f"{i-1}. {rails_dict[i]}")
-
-    # Start with empty memory
-    if 'memory' not in st.session_state:
-        st.session_state.memory = ConversationBufferWindowMemory(
-            chat_memory=chat_memory,
-            return_messages=True,
-            k=top_k_memory
-        )
-
-    # Start with empty messages, stored in session state
-    if 'messages' not in st.session_state:
-        st.session_state.messages = [AIMessage(content=lang_dict['assistant_welcome'])]
 
     # Redraw all messages, both user and agent so far (every time the app reruns)
     for message in st.session_state.messages:
@@ -288,7 +268,7 @@ Answer in the user's language:"""
             prompt = ChatPromptTemplate.from_template(template)
 
             chain = RunnableMap({
-                'context': lambda x: retriever.get_relevant_documents(x['question']),
+                'context': lambda x: st.session_state.memory.retriever.get_relevant_documents(x['question']),
                 'history': lambda x: x['history'],
                 'question': lambda x: x['question']
             }) | prompt | model
@@ -307,7 +287,7 @@ Answer in the user's language:"""
             st.session_state.messages.append(AIMessage(content=response.content))
 
     with st.sidebar:
-        st.caption("v3110_01")
+        st.caption("v3110_02")
 
 elif authentication_status == False:
     with st.sidebar:

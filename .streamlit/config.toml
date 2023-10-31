@@ -9,4 +9,4 @@ level = "info"
 # Python's documentation for available attributes:
 # https://docs.python.org/2.6/library/logging.html#formatter-objects
 # Default: "%(asctime)s %(message)s"
-messageFormat = "%(asctime)s %(level)s: %(message)s"
+messageFormat = "%(asctime)s %(levelname)s: %(message)s"
