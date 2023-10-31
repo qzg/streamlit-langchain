@@ -306,6 +306,9 @@ Answer in the user's language:"""
             # Add the answer to the messages session state
             st.session_state.messages.append(AIMessage(content=response.content))
 
+    with st.sidebar:
+        st.caption("v3110_01")
+
 elif authentication_status == False:
     with st.sidebar:
         st.error('Username/password is incorrect')
