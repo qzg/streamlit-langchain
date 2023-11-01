@@ -64,7 +64,11 @@ global retriever
 global model
 global chat_history
 global memory
+
 global authenticator
+global name
+global authentication_status
+global username
 
 #################
 ### Functions ###
@@ -257,8 +261,27 @@ authenticator = load_authenticator()
 name, authentication_status, username = authenticator.login('Login', 'sidebar')
 
 if authentication_status != None:
+    st.session_state.username = username
     authenticator.logout('Logout', 'sidebar')
     
+elif authentication_status == False:
+    with st.sidebar:
+        st.error('Username/password is incorrect')
+    print('Username/password is incorrect')
+    st.stop()
+
+elif authentication_status == None:
+    st.session_state.clear()
+    st.cache_resource.clear()
+    st.cache_data.clear()
+    with st.sidebar:
+        st.warning('Please enter your username and password')
+    print('Please enter your username and password')
+    st.stop()
+
+if 'username' in st.session_state and st.session_state.username != '':
+    username = st.session_state.username
+
     with st.sidebar:
         rails_dict = load_rails(username)
         session = load_session()
@@ -325,14 +348,16 @@ if authentication_status != None:
             history = memory.load_memory_variables({})
             print(f"Using memory: {history}")
 
+            print(f"Create ingress map")
             ingress = RunnableMap({
                 'context': lambda x: retriever.get_relevant_documents(x['question']),
                 'chat_history': lambda x: x['chat_history'],
                 'question': lambda x: x['question']
             })
+            print(f"Create chain")
             chain = ingress | prompt | model
+            print(f"Chain: {chain}")
 
-            print(f"chain: {chain}")
             full_response = ""
             for chunk in chain.stream({'question': question, 'chat_history': history}):
                 full_response += chunk.content
@@ -350,14 +375,4 @@ if authentication_status != None:
             st.session_state.messages.append(AIMessage(content=full_response))
 
     with st.sidebar:
-                st.caption("v3110_06")
-
-elif authentication_status == False:
-    with st.sidebar:
-        st.error('Username/password is incorrect')
-    print('Username/password is incorrect')
-
-elif authentication_status == None:
-    with st.sidebar:
-        st.warning('Please enter your username and password')
-    print('Please enter your username and password')
+                st.caption("v3110_07")
