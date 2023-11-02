@@ -6,18 +6,10 @@ os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_ENDPOINT"] = st.secrets['LANGCHAIN_ENDPOINT']
 os.environ["LANGCHAIN_PROJECT"] = st.secrets['LANGCHAIN_PROJECT']
 
-import logging
-
-import streamlit_authenticator as stauth
-import yaml
-from yaml.loader import SafeLoader
 import pandas as pd
 
 from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
-
-from langchain.vectorstores import Cassandra
-from langchain.embeddings import OpenAIEmbeddings
 
 from langchain.chat_models import ChatOpenAI
 from langchain.vectorstores import Cassandra
@@ -25,17 +17,27 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.memory import CassandraChatMessageHistory
 
-
 import tempfile
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PyPDFLoader
 
 from langchain.schema import HumanMessage, AIMessage
 from langchain.prompts import ChatPromptTemplate
-from langchain.callbacks.base import BaseCallbackHandler
 from langchain.schema.runnable import RunnableMap
 
+from langchain.callbacks.base import BaseCallbackHandler
+
 print("Started")
+
+# Streaming call back handler for responses
+class StreamHandler(BaseCallbackHandler):
+    def __init__(self, container, initial_text=""):
+        self.container = container
+        self.text = initial_text
+
+    def on_llm_new_token(self, token: str, **kwargs):
+        self.text += token
+        self.container.markdown(self.text + "▌")
 
 #################
 ### Constants ###
@@ -51,6 +53,9 @@ lang_options = {
     '🇳🇱 Nederlandse gebruikers interface':'nl_NL'
 }
 
+# Defines the vector tables, memory and rails to use
+username = 'postnl'
+
 ###############
 ### Globals ###
 ###############
@@ -65,61 +70,40 @@ global model
 global chat_history
 global memory
 
-global authenticator
-global name
-global authentication_status
-global username
-
 #################
 ### Functions ###
 #################
 
-# Get authenticator and credentials
-def load_authenticator():
-    print("load_authenticator")
-    with open('.streamlit/credentials.yaml') as file:
-        config = yaml.load(file, Loader=SafeLoader)
-        return stauth.Authenticate(
-            config['credentials'],
-            config['cookie']['name'],
-            config['cookie']['key'],
-            config['cookie']['expiry_days'],
-            config['preauthorized']
-        )
-
 # Function for Vectorizing uploaded data into Astra DB
 def vectorize_text(uploaded_file):
     if uploaded_file is not None:
-        docs = []
+        
+        # Write to temporary file
+        temp_dir = tempfile.TemporaryDirectory()
+        file = uploaded_file
+        print("""Processing: {file}""")
+        temp_filepath = os.path.join(temp_dir.name, file.name)
+        with open(temp_filepath, "wb") as f:
+            f.write(file.getvalue())
+
+        # Create the text splitter
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size = 1500,
+            chunk_overlap  = 100
+        )
 
         if uploaded_file.name.endswith('txt'):
             file = [uploaded_file.read().decode()]
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size = 1500,
-                chunk_overlap  = 200
-            )  
-            texts = text_splitter.create_documents(file)
-            vectorstore.add_documents(texts)  
+            texts = text_splitter.create_documents(file, [{'source': uploaded_file.name}])
+            vectorstore.add_documents(texts)
             st.info(f"{len(texts)} {lang_dict['load_text']}")
 
         if uploaded_file.name.endswith('pdf'):
-            
             # Read PDF
             docs = []
-            temp_dir = tempfile.TemporaryDirectory()
-            file = uploaded_file
-            print("""Processing: {file}""")
-            temp_filepath = os.path.join(temp_dir.name, file.name)
-            with open(temp_filepath, "wb") as f:
-                f.write(file.getvalue())
             loader = PyPDFLoader(temp_filepath)
             docs.extend(loader.load())
 
-            # Split documents
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size = 1500,
-                chunk_overlap  = 200
-            )  
             pages = text_splitter.split_documents(docs)
             vectorstore.add_documents(pages)  
             st.info(f"{len(pages)} {lang_dict['load_pdf']}")
@@ -257,30 +241,33 @@ if 'messages' not in st.session_state:
 ### Main ###
 ############
 
-#authenticator = load_authenticator()
-#name, authentication_status, username = authenticator.login('Login', 'sidebar')
+"""
+## Your personal effectivity booster
+Generative AI is considered to bring the next Industrial Revolution.
 
-#if authentication_status != None:
-#    st.session_state.username = username
-#    authenticator.logout('Logout', 'sidebar')
-    
-#elif authentication_status == False:
-#    with st.sidebar:
-#        st.error('Username/password is incorrect')
-#    print('Username/password is incorrect')
-#    st.stop()
+Why? Studies show a **37% efficiency boost** in day to day work activities!
 
-#elif authentication_status == None:
-#    st.session_state.clear()
-#    st.cache_resource.clear()
-#    st.cache_data.clear()
-#    with st.sidebar:
-#        st.warning('Please enter your username and password')
-#    print('Please enter your username and password')
-#    st.stop()
+#### What is this app?
+This app is a Chat Agent which takes into account Enterprise Context to provide meaningfull and contextual responses.
+Why is this a big thing? It is because the underlying Foundational Large Language Models are not trained on Enterprise Data. They have no way of knowing anything about your organization.
+Also they are trained upon a moment in time, so typically miss out on relevant and recent information.
 
-#if 'username' in st.session_state and st.session_state.username != '':
-username = 'postnl'
+#### What does it know?
+The app has been preloaded with the following context:
+- PDF met Business Principles
+- PDF met haalservice aanbod
+- Webpagina over zakelijk aanbod
+- Webpagina over duurzaamheid
+
+This means you can start interacting with your personal assistant based on the above topics.
+
+#### Adding additional context
+On top of the above you have the opportunity to add additional information which then can be taken into account by the personal assistant. Just drop a PDF or Text file into the upload box in the sidebar and hit `Save`.
+
+By the way... Be careful with the `Delete context` button. As this will do exactly that. I deletes the preloaded content mentioned above rendering the personal assistant non-contextual :)
+
+---
+"""
 
 # Initialize
 with st.sidebar:
@@ -300,7 +287,7 @@ with st.sidebar:
         uploaded_file = st.file_uploader(lang_dict['load_context'], type=['txt', 'pdf'], )
         submitted = st.form_submit_button(lang_dict['load_context_button'])
         if submitted:
-            vectorize_text(uploaded_file, st.session_state.vectorstore)
+            vectorize_text(uploaded_file)
 
 # Drop the vector data and start from scratch
 with st.sidebar:
@@ -309,9 +296,10 @@ with st.sidebar:
         submitted = st.form_submit_button(lang_dict['drop_context_button'])
         if submitted:
             with st.spinner(lang_dict['dropping_context']):
-                st.session_state.vectorstore.clear()
+                vectorstore.clear()
+                memory.clear()
+                st.session_state.clear()
                 st.session_state.messages = [AIMessage(content=lang_dict['assistant_welcome'])]
-                st.session_state.memory.clear()
 
 # Draw rails
 with st.sidebar:
@@ -341,38 +329,49 @@ if question := st.chat_input(lang_dict['assistant_question']):
     print(f"Chat message")
     with st.chat_message('assistant'):
         # UI placeholder to start filling with agent response
-        print(f"Response placeholder")
         response_placeholder = st.empty()
 
-        print(f"Get history")
         history = memory.load_memory_variables({})
         print(f"Using memory: {history}")
 
-        print(f"Create ingress map")
-        ingress = RunnableMap({
+        inputs = RunnableMap({
             'context': lambda x: retriever.get_relevant_documents(x['question']),
             'chat_history': lambda x: x['chat_history'],
             'question': lambda x: x['question']
         })
-        print(f"Create chain")
-        chain = ingress | prompt | model
-        print(f"Chain: {chain}")
+        print(f"Using inputs: {inputs}")
 
-        full_response = ""
-        for chunk in chain.stream({'question': question, 'chat_history': history}):
-            full_response += chunk.content
-            response_placeholder.markdown(full_response + "▌")
+        chain = inputs | prompt | model
+        print(f"Using chain: {chain}")
 
-        print(f"Response: {full_response}")
+        # Call the chain and stream the results into the UI
+        callback = StreamHandler(response_placeholder)
+        response = chain.invoke({'question': question, 'chat_history': history}, config={'callbacks': [callback]})
+        print(f"Response: {response}")
+        content = response.content
+
+        # Write the sources used
+        relevant_documents = retriever.get_relevant_documents(question)
+        content += """
+        
+*The following context was used for this answer:*  
+"""
+        sources = []
+        for doc in relevant_documents:
+            source = doc.metadata['source']
+            if source not in sources:
+                content += f"🗓️ :orange[{os.path.basename(os.path.normpath(source))}]  "
+                sources.append(source)
+        print(f"Used sources: {sources}")
 
         # Write the final answer without the cursor
-        response_placeholder.markdown(full_response)
+        response_placeholder.markdown(content)
 
         # Add the result to memory
-        memory.save_context({'question': question}, {'answer': full_response})
+        memory.save_context({'question': question}, {'answer': content})
 
         # Add the answer to the messages session state
-        st.session_state.messages.append(AIMessage(content=full_response))
+        st.session_state.messages.append(AIMessage(content=content))
 
 with st.sidebar:
-            st.caption("v11.02.01")
+            st.caption("v11.02.02")
