@@ -17,12 +17,18 @@ en_US,load_context,Upload a document for additional context
 nl_NL,load_context,Upload een document voor additionele context
 en_US,load_context_button,Save
 nl_NL,load_context_button,Opslaan
-en_US,drop_context,"Delete the context, history and start over. This deletes embeddings for ALL users!"
-nl_NL,drop_context,"Verwijder de context, historie en begin opnieuw. Dit verwijderd embeddings voor ALLE gebruikers!"
-en_US,dropping_context,Removing context and intialising...
-nl_NL,dropping_context,Context verwijderen en herinitialiseren...
-en_US,drop_context_button,Delete context
-nl_NL,drop_context_button,Verwijder context
+en_US,delete_context,"Delete the context, history and start over. This deletes vector embeddings for ALL users!"
+nl_NL,delete_context,"Verwijder de context, historie en begin opnieuw. Dit verwijderd vector data voor ALLE gebruikers!"
+en_US,deleting_context,Removing context and intialising...
+nl_NL,deleting_context,Context verwijderen en herinitialiseren...
+en_US,delete_context_button,Delete context
+nl_NL,delete_context_button,Verwijder context
+en_US,delete_memory,"Delete the history in the conversational memory."
+nl_NL,delete_memory,"Verwijder de historie uit het chat geheugen."
+en_US,deleting_memory,Removing memory...
+nl_NL,deleting_memory,Memory verwijderen...
+en_US,delete_memory_button,Delete chat history
+nl_NL,delete_memory_button,Verwijder chat historie
 en_US,assistant_welcome,"Hi, I'm your personal assistant and am ready to help!"
 nl_NL,assistant_welcome,"Hallo, ik ben je persoonlijke assistent en sta voor je klaar!"
 en_US,assistant_question,What's up?

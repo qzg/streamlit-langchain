@@ -241,6 +241,10 @@ if 'messages' not in st.session_state:
 ### Main ###
 ############
 
+with st.sidebar:
+    st.image('./assets/datastax-logo.svg')
+    st.text('')
+
 """
 ## Your personal effectivity booster
 Generative AI is considered to bring the next Industrial Revolution.
@@ -289,13 +293,22 @@ with st.sidebar:
         if submitted:
             vectorize_text(uploaded_file)
 
+# Drop the Conversational Memory
+with st.sidebar:
+    with st.form('delete_memory'):
+        st.caption(lang_dict['delete_memory'])
+        submitted = st.form_submit_button(lang_dict['delete_memory_button'])
+        if submitted:
+            with st.spinner(lang_dict['deleting_memory']):
+                memory.clear()
+
 # Drop the vector data and start from scratch
 with st.sidebar:
-    with st.form('drop'):
-        st.caption(lang_dict['drop_context'])
-        submitted = st.form_submit_button(lang_dict['drop_context_button'])
+    with st.form('delete_context'):
+        st.caption(lang_dict['delete_context'])
+        submitted = st.form_submit_button(lang_dict['delete_context_button'])
         if submitted:
-            with st.spinner(lang_dict['dropping_context']):
+            with st.spinner(lang_dict['deleting_context']):
                 vectorstore.clear()
                 memory.clear()
                 st.session_state.clear()
@@ -360,7 +373,8 @@ if question := st.chat_input(lang_dict['assistant_question']):
         for doc in relevant_documents:
             source = doc.metadata['source']
             if source not in sources:
-                content += f"📙 :orange[{os.path.basename(os.path.normpath(source))}]  "
+                content += f"""📙 :orange[{os.path.basename(os.path.normpath(source))}]  
+"""
                 sources.append(source)
         print(f"Used sources: {sources}")
 
