@@ -360,7 +360,7 @@ if question := st.chat_input(lang_dict['assistant_question']):
         for doc in relevant_documents:
             source = doc.metadata['source']
             if source not in sources:
-                content += f"🗓️ :orange[{os.path.basename(os.path.normpath(source))}]  "
+                content += f"📙 :orange[{os.path.basename(os.path.normpath(source))}]  "
                 sources.append(source)
         print(f"Used sources: {sources}")
 
