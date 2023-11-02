@@ -7,4 +7,3 @@ cassandra-driver
 cassio
 pypdf
 pandas
-streamlit-authenticator
