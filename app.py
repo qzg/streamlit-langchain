@@ -243,7 +243,7 @@ Question:
 
 Answer in the user's language:"""
 
-    return ChatPromptTemplate.from_template(template)
+    return ChatPromptTemplate.from_messages([("system", template)])
 
 #####################
 ### Session state ###
@@ -257,122 +257,122 @@ if 'messages' not in st.session_state:
 ### Main ###
 ############
 
-authenticator = load_authenticator()
-name, authentication_status, username = authenticator.login('Login', 'sidebar')
+#authenticator = load_authenticator()
+#name, authentication_status, username = authenticator.login('Login', 'sidebar')
 
-if authentication_status != None:
-    st.session_state.username = username
-    authenticator.logout('Logout', 'sidebar')
+#if authentication_status != None:
+#    st.session_state.username = username
+#    authenticator.logout('Logout', 'sidebar')
     
-elif authentication_status == False:
-    with st.sidebar:
-        st.error('Username/password is incorrect')
-    print('Username/password is incorrect')
-    st.stop()
+#elif authentication_status == False:
+#    with st.sidebar:
+#        st.error('Username/password is incorrect')
+#    print('Username/password is incorrect')
+#    st.stop()
 
-elif authentication_status == None:
-    st.session_state.clear()
-    st.cache_resource.clear()
-    st.cache_data.clear()
-    with st.sidebar:
-        st.warning('Please enter your username and password')
-    print('Please enter your username and password')
-    st.stop()
+#elif authentication_status == None:
+#    st.session_state.clear()
+#    st.cache_resource.clear()
+#    st.cache_data.clear()
+#    with st.sidebar:
+#        st.warning('Please enter your username and password')
+#    print('Please enter your username and password')
+#    st.stop()
 
-if 'username' in st.session_state and st.session_state.username != '':
-    username = st.session_state.username
+#if 'username' in st.session_state and st.session_state.username != '':
+username = 'postnl'
 
-    with st.sidebar:
-        rails_dict = load_rails(username)
-        session = load_session()
-        embedding = load_embedding()
-        vectorstore = load_vectorstore(username)
-        retriever = load_retriever()
-        model = load_model()
-        chat_history = load_chat_history(username)
-        memory = load_memory()
-        prompt = load_prompt()
+# Initialize
+with st.sidebar:
+    rails_dict = load_rails(username)
+    session = load_session()
+    embedding = load_embedding()
+    vectorstore = load_vectorstore(username)
+    retriever = load_retriever()
+    model = load_model()
+    chat_history = load_chat_history(username)
+    memory = load_memory()
+    prompt = load_prompt()
 
-        # Include the upload form for new data to be Vectorized
-    with st.sidebar:
-        with st.form('upload'):
-            uploaded_file = st.file_uploader(lang_dict['load_context'], type=['txt', 'pdf'], )
-            submitted = st.form_submit_button(lang_dict['load_context_button'])
-            if submitted:
-                vectorize_text(uploaded_file, st.session_state.vectorstore)
+# Include the upload form for new data to be Vectorized
+with st.sidebar:
+    with st.form('upload'):
+        uploaded_file = st.file_uploader(lang_dict['load_context'], type=['txt', 'pdf'], )
+        submitted = st.form_submit_button(lang_dict['load_context_button'])
+        if submitted:
+            vectorize_text(uploaded_file, st.session_state.vectorstore)
 
-    # Drop the vector data and start from scratch
-    if username == 'michel':
-        with st.sidebar:
-            with st.form('drop'):
-                st.caption(lang_dict['drop_context'])
-                submitted = st.form_submit_button(lang_dict['drop_context_button'])
-                if submitted:
-                    with st.spinner(lang_dict['dropping_context']):
-                        st.session_state.vectorstore.clear()
-                        st.session_state.messages = [AIMessage(content=lang_dict['assistant_welcome'])]
-                        st.session_state.memory.clear()
+# Drop the vector data and start from scratch
+with st.sidebar:
+    with st.form('drop'):
+        st.caption(lang_dict['drop_context'])
+        submitted = st.form_submit_button(lang_dict['drop_context_button'])
+        if submitted:
+            with st.spinner(lang_dict['dropping_context']):
+                st.session_state.vectorstore.clear()
+                st.session_state.messages = [AIMessage(content=lang_dict['assistant_welcome'])]
+                st.session_state.memory.clear()
 
-    # Draw rails
-    with st.sidebar:
-            st.subheader(rails_dict[0])
-            st.caption(rails_dict[1])
-            for i in rails_dict:
-                if i>1:
-                    st.markdown(f"{i-1}. {rails_dict[i]}")
+# Draw rails
+with st.sidebar:
+        st.subheader(rails_dict[0])
+        st.caption(rails_dict[1])
+        for i in rails_dict:
+            if i>1:
+                st.markdown(f"{i-1}. {rails_dict[i]}")
 
-    # Draw all messages, both user and agent so far (every time the app reruns)
-    for message in st.session_state.messages:
-        st.chat_message(message.type).markdown(message.content)
+# Draw all messages, both user and agent so far (every time the app reruns)
+for message in st.session_state.messages:
+    st.chat_message(message.type).markdown(message.content)
 
-    # Now get a prompt from a user
-    if question := st.chat_input(lang_dict['assistant_question']):
-        print(f"Got question {question}")
+# Now get a prompt from a user
+if question := st.chat_input(lang_dict['assistant_question']):
+    print(f"Got question {question}")
 
-        # Add the prompt to messages, stored in session state
-        st.session_state.messages.append(HumanMessage(content=question))
+    # Add the prompt to messages, stored in session state
+    st.session_state.messages.append(HumanMessage(content=question))
 
-        # Draw the prompt on the page
-        print(f"Draw prompt")
-        with st.chat_message('human'):
-            st.markdown(question)
+    # Draw the prompt on the page
+    print(f"Draw prompt")
+    with st.chat_message('human'):
+        st.markdown(question)
 
-        # Get the results from Langchain
-        print(f"Chat message")
-        with st.chat_message('assistant'):
-            # UI placeholder to start filling with agent response
-            print(f"Response placeholder")
-            response_placeholder = st.empty()
+    # Get the results from Langchain
+    print(f"Chat message")
+    with st.chat_message('assistant'):
+        # UI placeholder to start filling with agent response
+        print(f"Response placeholder")
+        response_placeholder = st.empty()
 
-            print(f"Get history")
-            history = memory.load_memory_variables({})
-            print(f"Using memory: {history}")
+        print(f"Get history")
+        history = memory.load_memory_variables({})
+        print(f"Using memory: {history}")
 
-            print(f"Create ingress map")
-            ingress = RunnableMap({
-                'context': lambda x: retriever.get_relevant_documents(x['question']),
-                'chat_history': lambda x: x['chat_history'],
-                'question': lambda x: x['question']
-            })
-            print(f"Create chain")
-            chain = ingress | prompt | model
-            print(f"Chain: {chain}")
+        print(f"Create ingress map")
+        ingress = RunnableMap({
+            'context': lambda x: retriever.get_relevant_documents(x['question']),
+            'chat_history': lambda x: x['chat_history'],
+            'question': lambda x: x['question']
+        })
+        print(f"Create chain")
+        chain = ingress | prompt | model
+        print(f"Chain: {chain}")
 
-            full_response = ""
-            for chunk in chain.stream({'question': question, 'chat_history': history}):
-                full_response += chunk.content
-                response_placeholder.markdown(full_response + "▌")
+        full_response = ""
+        for chunk in chain.stream({'question': question, 'chat_history': history}):
+            full_response += chunk.content
+            response_placeholder.markdown(full_response + "▌")
 
-            print(f"Response: {full_response}")
+        print(f"Response: {full_response}")
 
-            # Write the final answer without the cursor
-            response_placeholder.markdown(full_response)
+        # Write the final answer without the cursor
+        response_placeholder.markdown(full_response)
 
-            # Add the result to memory
-            memory.save_context({'question': question}, {'answer': full_response})
+        # Add the result to memory
+        memory.save_context({'question': question}, {'answer': full_response})
 
-            # Add the answer to the messages session state
-            st.session_state.messages.append(AIMessage(content=full_response))
+        # Add the answer to the messages session state
+        st.session_state.messages.append(AIMessage(content=full_response))
 
-    with st.sidebar:
-                st.caption("v3110_07")
+with st.sidebar:
+            st.caption("v11.02.01")
