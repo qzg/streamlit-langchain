@@ -258,10 +258,10 @@ Also they are trained upon a moment in time, so typically miss out on relevant a
 
 #### What does it know?
 The app has been preloaded with the following context:
-- PDF met Business Principles
-- PDF met haalservice aanbod
-- Webpagina over zakelijk aanbod
-- Webpagina over duurzaamheid
+- [PDF met Business Principles](https://www.postnl.nl/Images/business-principles-nl_tcm10-66407.pdf)
+- [PDF met haalservice aanbod](https://www.postnl.nl/Images/aanleveren-pakketten_tcm10-236964.pdf)
+- [Webpagina over zakelijk aanbod](https://www.postnl.nl/zakelijke-oplossingen/)
+- [Webpagina over duurzaamheid](https://www.postnl.nl/zakelijke-oplossingen/duurzaamheid/)
 
 This means you can start interacting with your personal assistant based on the above topics.
 
