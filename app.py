@@ -180,7 +180,7 @@ def load_model():
     # Get the OpenAI Chat Model
     return ChatOpenAI(
         temperature=0.3,
-        model='gpt-3.5-turbo',
+        model='gpt-4-1106-preview',
         streaming=True,
         verbose=True
     )
@@ -372,6 +372,7 @@ if question := st.chat_input(lang_dict['assistant_question']):
         sources = []
         for doc in relevant_documents:
             source = doc.metadata['source']
+            page_content = doc.page_content
             if source not in sources:
                 content += f"""📙 :orange[{os.path.basename(os.path.normpath(source))}]  
 """
