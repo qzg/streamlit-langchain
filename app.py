@@ -389,4 +389,4 @@ if question := st.chat_input(lang_dict['assistant_question']):
         st.session_state.messages.append(AIMessage(content=content))
 
 with st.sidebar:
-            st.caption("v11.02.02")
+            st.caption("v11.07.01")
