@@ -1,4 +1,5 @@
 import os
+import hmac
 import streamlit as st
 os.environ["OPENAI_API_KEY"] = st.secrets['OPENAI_API_KEY']
 os.environ["LANGCHAIN_API_KEY"] = st.secrets['LANGCHAIN_API_KEY']
@@ -47,14 +48,11 @@ class StreamHandler(BaseCallbackHandler):
 top_k_vectorstore = 4
 top_k_memory = 3
 
-# Define the language options
-lang_options = {
-    '🇺🇸 English User interface':'en_US',
-    '🇳🇱 Nederlandse gebruikers interface':'nl_NL'
-}
+# Define the language option for localization
+language = 'en_US'
 
 # Defines the vector tables, memory and rails to use
-username = 'postnl'
+username = st.secrets["USERNAME"]
 
 ###############
 ### Globals ###
@@ -74,39 +72,64 @@ global memory
 ### Functions ###
 #################
 
+# Close off the app using a password
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if hmac.compare_digest(st.session_state["password"], st.secrets["PASSWORD"]):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Don't store the password.
+        else:
+            st.session_state["password_correct"] = False
+
+    # Return True if the password is validated.
+    if st.session_state.get("password_correct", False):
+        return True
+
+    # Show input for password.
+    st.text_input(
+        lang_dict['password'], type="password", on_change=password_entered, key="password"
+    )
+    if "password_correct" in st.session_state:
+        st.error(lang_dict['password_incorrect'])
+    return False
+
 # Function for Vectorizing uploaded data into Astra DB
-def vectorize_text(uploaded_file):
-    if uploaded_file is not None:
-        
-        # Write to temporary file
-        temp_dir = tempfile.TemporaryDirectory()
-        file = uploaded_file
-        print("""Processing: {file}""")
-        temp_filepath = os.path.join(temp_dir.name, file.name)
-        with open(temp_filepath, "wb") as f:
-            f.write(file.getvalue())
+def vectorize_text(uploaded_files):
+    for uploaded_file in uploaded_files:
+        if uploaded_file is not None:
+            
+            # Write to temporary file
+            temp_dir = tempfile.TemporaryDirectory()
+            file = uploaded_file
+            print(f"""Processing: {file}""")
+            temp_filepath = os.path.join(temp_dir.name, file.name)
+            with open(temp_filepath, "wb") as f:
+                f.write(file.getvalue())
 
-        # Create the text splitter
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size = 1500,
-            chunk_overlap  = 100
-        )
+            # Create the text splitter
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size = 1500,
+                chunk_overlap  = 100
+            )
 
-        if uploaded_file.name.endswith('txt'):
-            file = [uploaded_file.read().decode()]
-            texts = text_splitter.create_documents(file, [{'source': uploaded_file.name}])
-            vectorstore.add_documents(texts)
-            st.info(f"{len(texts)} {lang_dict['load_text']}")
+            if uploaded_file.name.endswith('txt'):
+                file = [uploaded_file.read().decode()]
+                texts = text_splitter.create_documents(file, [{'source': uploaded_file.name}])
+                vectorstore.add_documents(texts)
+                st.info(f"{len(texts)} {lang_dict['load_text']}")
 
-        if uploaded_file.name.endswith('pdf'):
-            # Read PDF
-            docs = []
-            loader = PyPDFLoader(temp_filepath)
-            docs.extend(loader.load())
+            if uploaded_file.name.endswith('pdf'):
+                # Read PDF
+                docs = []
+                loader = PyPDFLoader(temp_filepath)
+                docs.extend(loader.load())
 
-            pages = text_splitter.split_documents(docs)
-            vectorstore.add_documents(pages)  
-            st.info(f"{len(pages)} {lang_dict['load_pdf']}")
+                pages = text_splitter.split_documents(docs)
+                vectorstore.add_documents(pages)  
+                st.info(f"{len(pages)} {lang_dict['load_pdf']}")
 
 ################################
 ### Resources and Data Cache ###
@@ -122,7 +145,7 @@ def load_localization(locale):
     # Create and return a dictionary of key/values.
     lang_dict = {df.key.to_list()[i]:df.value.to_list()[i] for i in range(len(df.key.to_list()))}
     return lang_dict
-lang_dict = load_localization('en_US')
+lang_dict = load_localization(language)
 
 # Cache localized strings
 @st.cache_data()
@@ -241,6 +264,10 @@ if 'messages' not in st.session_state:
 ### Main ###
 ############
 
+# Check for password
+if not check_password():
+    st.stop()  # Do not continue if check_password is not True.
+
 with st.sidebar:
     st.image('./assets/datastax-logo.svg')
     st.text('')
@@ -288,7 +315,7 @@ with st.sidebar:
 # Include the upload form for new data to be Vectorized
 with st.sidebar:
     with st.form('upload'):
-        uploaded_file = st.file_uploader(lang_dict['load_context'], type=['txt', 'pdf'], )
+        uploaded_file = st.file_uploader(lang_dict['load_context'], type=['txt', 'pdf'], accept_multiple_files=True)
         submitted = st.form_submit_button(lang_dict['load_context_button'])
         if submitted:
             vectorize_text(uploaded_file)

@@ -39,3 +39,7 @@ en_US,load_pdf,pages loaded into Astra DB
 nl_NL,load_pdf,paginas geladen in Astra DB
 en_US,assistant_leadin,Type for example:
 nl_NL,assistant_leadin,Bijvoorbeeld:
+en_US,password,Password
+nl_NL,password,Wachtwoord
+en_US,password_incorrect,😕 Password incorrect
+nl_NL,password_incorrect,😕 Foutief wachtwoord
