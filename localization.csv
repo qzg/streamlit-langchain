@@ -1,6 +1,4 @@
 locale,key,value
-en_US,title,Your personal assistant 🤖 
-nl_NL,title,Je persoonlijke assistent 🤖 
 en_US,connect_astra,Setting up Astra DB connection...
 nl_NL,connect_astra,Verkrijgen van de Astra DB verbinding...
 en_US,load_embedding,Getting the OpenAI embedding...
@@ -39,7 +37,7 @@ en_US,load_pdf,pages loaded into Astra DB
 nl_NL,load_pdf,paginas geladen in Astra DB
 en_US,assistant_leadin,Type for example:
 nl_NL,assistant_leadin,Bijvoorbeeld:
-en_US,password,Password
-nl_NL,password,Wachtwoord
-en_US,password_incorrect,😕 Password incorrect
-nl_NL,password_incorrect,😕 Foutief wachtwoord
+en_US,rails_1,🤩 Try the following prompts ⬇️
+nl_NL,rails_1,🤩 Probeer de volgende prompts ⬇️
+en_US,rails_2,(copy and paste in the chat box)
+nl_NL,rails_2,(kopieer en plak in de chat)

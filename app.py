@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import hmac
 import streamlit as st
 os.environ["OPENAI_API_KEY"] = st.secrets['OPENAI_API_KEY']
@@ -48,12 +49,6 @@ class StreamHandler(BaseCallbackHandler):
 top_k_vectorstore = 4
 top_k_memory = 3
 
-# Define the language option for localization
-language = 'en_US'
-
-# Defines the vector tables, memory and rails to use
-username = st.secrets["USERNAME"]
-
 ###############
 ### Globals ###
 ###############
@@ -74,26 +69,36 @@ global memory
 
 # Close off the app using a password
 def check_password():
-    """Returns `True` if the user had the correct password."""
+    """Returns `True` if the user had a correct password."""
+
+    def login_form():
+        """Form with widgets to collect user information"""
+        with st.form("Credentials"):
+            st.text_input('Username', key='username')
+            st.text_input('Password', type='password', key='password')
+            st.form_submit_button('Login', on_click=password_entered)
 
     def password_entered():
         """Checks whether a password entered by the user is correct."""
-        if hmac.compare_digest(st.session_state["password"], st.secrets["PASSWORD"]):
-            st.session_state["password_correct"] = True
-            del st.session_state["password"]  # Don't store the password.
+        if st.session_state['username'] in st.secrets[
+            "passwords"
+        ] and hmac.compare_digest(
+            st.session_state['password'],
+            st.secrets.passwords[st.session_state['username']],
+        ):
+            st.session_state['password_correct'] = True
+            del st.session_state['password']  # Don't store the password.
         else:
-            st.session_state["password_correct"] = False
+            st.session_state['password_correct'] = False
 
-    # Return True if the password is validated.
-    if st.session_state.get("password_correct", False):
+    # Return True if the username + password is validated.
+    if st.session_state.get('password_correct', False):
         return True
 
-    # Show input for password.
-    st.text_input(
-        lang_dict['password'], type="password", on_change=password_entered, key="password"
-    )
+    # Show inputs for username + password.
+    login_form()
     if "password_correct" in st.session_state:
-        st.error(lang_dict['password_incorrect'])
+        st.error('😕 User not known or password incorrect')
     return False
 
 # Function for Vectorizing uploaded data into Astra DB
@@ -106,7 +111,7 @@ def vectorize_text(uploaded_files):
             file = uploaded_file
             print(f"""Processing: {file}""")
             temp_filepath = os.path.join(temp_dir.name, file.name)
-            with open(temp_filepath, "wb") as f:
+            with open(temp_filepath, 'wb') as f:
                 f.write(file.getvalue())
 
             # Create the text splitter
@@ -131,9 +136,9 @@ def vectorize_text(uploaded_files):
                 vectorstore.add_documents(pages)  
                 st.info(f"{len(pages)} {lang_dict['load_pdf']}")
 
-################################
-### Resources and Data Cache ###
-################################
+##################
+### Data Cache ###
+##################
 
 # Cache localized strings
 @st.cache_data()
@@ -145,7 +150,6 @@ def load_localization(locale):
     # Create and return a dictionary of key/values.
     lang_dict = {df.key.to_list()[i]:df.value.to_list()[i] for i in range(len(df.key.to_list()))}
     return lang_dict
-lang_dict = load_localization(language)
 
 # Cache localized strings
 @st.cache_data()
@@ -157,6 +161,21 @@ def load_rails(username):
     # Create and return a dictionary of key/values.
     rails_dict = {df.key.to_list()[i]:df.value.to_list()[i] for i in range(len(df.key.to_list()))}
     return rails_dict
+
+#############
+### Login ###
+#############
+
+# Check for username/password and set the username accordingly
+if not check_password():
+    st.stop()  # Do not continue if check_password is not True.
+username = st.session_state['username']
+language = st.secrets.languages[username]
+lang_dict = load_localization(language)
+
+#######################
+### Resources Cache ###
+#######################
 
 # Cache Astra DB session for future runs
 @st.cache_resource(show_spinner=lang_dict['connect_astra'])
@@ -264,41 +283,15 @@ if 'messages' not in st.session_state:
 ### Main ###
 ############
 
-# Check for password
-if not check_password():
-    st.stop()  # Do not continue if check_password is not True.
-
 with st.sidebar:
     st.image('./assets/datastax-logo.svg')
     st.text('')
 
-"""
-## Your personal effectivity booster
-Generative AI is considered to bring the next Industrial Revolution.
-
-Why? Studies show a **37% efficiency boost** in day to day work activities!
-
-#### What is this app?
-This app is a Chat Agent which takes into account Enterprise Context to provide meaningfull and contextual responses.
-Why is this a big thing? It is because the underlying Foundational Large Language Models are not trained on Enterprise Data. They have no way of knowing anything about your organization.
-Also they are trained upon a moment in time, so typically miss out on relevant and recent information.
-
-#### What does it know?
-The app has been preloaded with the following context:
-- [PDF met Business Principles](https://www.postnl.nl/Images/business-principles-nl_tcm10-66407.pdf)
-- [PDF met haalservice aanbod](https://www.postnl.nl/Images/aanleveren-pakketten_tcm10-236964.pdf)
-- [Webpagina over zakelijk aanbod](https://www.postnl.nl/zakelijke-oplossingen/)
-- [Webpagina over duurzaamheid](https://www.postnl.nl/zakelijke-oplossingen/duurzaamheid/)
-
-This means you can start interacting with your personal assistant based on the above topics.
-
-#### Adding additional context
-On top of the above you have the opportunity to add additional information which then can be taken into account by the personal assistant. Just drop a PDF or Text file into the upload box in the sidebar and hit `Save`.
-
-By the way... Be careful with the `Delete context` button. As this will do exactly that. I deletes the preloaded content mentioned above rendering the personal assistant non-contextual :)
-
----
-"""
+# Write the welcome text
+try:
+    st.markdown(Path(f"""{username}.md""").read_text())
+except:
+    st.markdown(Path('welcome.md').read_text())
 
 # Initialize
 with st.sidebar:
@@ -343,8 +336,8 @@ with st.sidebar:
 
 # Draw rails
 with st.sidebar:
-        st.subheader(rails_dict[0])
-        st.caption(rails_dict[1])
+        st.subheader(lang_dict['rails_1'])
+        st.caption(lang_dict['rails_2'])
         for i in rails_dict:
             if i>1:
                 st.markdown(f"{i-1}. {rails_dict[i]}")
