@@ -1,25 +1,25 @@
-## Your personal effectivity booster
-Generative AI is considered to bring the next Industrial Revolution.
+## Jouw persoonlijke effectiviteitsbooster
+Er wordt aangenomen dat generatieve AI de volgende industriële revolutie zal brengen.
 
-Why? Studies show a **37% efficiency boost** in day to day work activities!
+Waarom? Uit onderzoek blijkt dat de **efficiëntie van de dagelijkse werkzaamheden met 37% toeneemt!**
 
-#### What is this app?
-This app is a Chat Agent which takes into account Enterprise Context to provide meaningfull and contextual responses.
-Why is this a big thing? It is because the underlying Foundational Large Language Models are not trained on Enterprise Data. They have no way of knowing anything about your organization.
-Also they are trained upon a moment in time, so typically miss out on relevant and recent information.
+#### Wat is deze app?
+Deze app is een chatagent die rekening houdt met Enterprise Content om zinvolle en contextuele antwoorden te bieden.
+Waarom is dit iets groots? Dit komt omdat de onderliggende Foundational Large Language Models niet zijn getraind op bedrijfsgegevens. Ze kunnen niets over uw organisatie weten.
+Ze zijn bovendien op een bepaald moment getraind, waardoor ze doorgaans relevante en recente informatie missen.
 
-#### What does it know?
-The app has been preloaded with the following context:
+#### Wat weet het?
+De app is vooraf geladen met de volgende content:
 - [PDF met Business Principles](https://www.postnl.nl/Images/business-principles-nl_tcm10-66407.pdf)
 - [PDF met haalservice aanbod](https://www.postnl.nl/Images/aanleveren-pakketten_tcm10-236964.pdf)
 - [Webpagina over zakelijk aanbod](https://www.postnl.nl/zakelijke-oplossingen/)
 - [Webpagina over duurzaamheid](https://www.postnl.nl/zakelijke-oplossingen/duurzaamheid/)
 
-This means you can start interacting with your personal assistant based on the above topics.
+Dit betekent dat u op basis van de bovenstaande onderwerpen kunt beginnen met de interactie met uw persoonlijke assistent.
 
-#### Adding additional context
-On top of the above you have the opportunity to add additional information which then can be taken into account by the personal assistant. Just drop a PDF or Text file into the upload box in the sidebar and hit `Save`.
+#### Extra content toevoegen
+Bovenop het bovenstaande heeft u de mogelijkheid om aanvullende informatie toe te voegen, waarmee de persoonlijke assistent rekening kan houden. Plaats gewoon een PDF- of tekstbestand in het uploadvak in de zijbalk en klik op 'Opslaan'.
 
-By the way... Be careful with the `Delete context` button. As this will do exactly that. I deletes the preloaded content mentioned above rendering the personal assistant non-contextual 😉
+Overigens... Wees voorzichtig met de knop `Context verwijderen`. Omdat dit precies dat zal doen. Het verwijderd de hierboven genoemde vooraf geladen inhoud, waardoor de persoonlijke assistent niet-contextueel wordt 😉
 
 ---

@@ -11,6 +11,6 @@ Also they are trained upon a moment in time, so typically miss out on relevant a
 #### What does it know?
 Just drop a PDF or Text file into the upload box in the sidebar and hit `Save`.
 
-By the way... Be careful with the `Delete context` button. As this will do exactly that. I deletes the preloaded content mentioned above rendering the personal assistant non-contextual 😉
+By the way... Be careful with the `Delete context` button. As this will do exactly that. It deletes the preloaded content mentioned above rendering the personal assistant non-contextual 😉
 
 ---

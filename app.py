@@ -101,6 +101,10 @@ def check_password():
         st.error('😕 User not known or password incorrect')
     return False
 
+def logout():
+    del st.session_state['password_correct']
+    del st.session_state['username']
+
 # Function for Vectorizing uploaded data into Astra DB
 def vectorize_text(uploaded_files):
     for uploaded_file in uploaded_files:
@@ -169,6 +173,7 @@ def load_rails(username):
 # Check for username/password and set the username accordingly
 if not check_password():
     st.stop()  # Do not continue if check_password is not True.
+
 username = st.session_state['username']
 language = st.secrets.languages[username]
 lang_dict = load_localization(language)
@@ -283,15 +288,22 @@ if 'messages' not in st.session_state:
 ### Main ###
 ############
 
-with st.sidebar:
-    st.image('./assets/datastax-logo.svg')
-    st.text('')
-
 # Write the welcome text
 try:
     st.markdown(Path(f"""{username}.md""").read_text())
 except:
     st.markdown(Path('welcome.md').read_text())
+
+# DataStax logo
+with st.sidebar:
+    st.image('./assets/datastax-logo.svg')
+    st.text('')
+
+# Logout button
+with st.sidebar:
+    with st.form('logout'):
+        st.caption(f"""{lang_dict['logout_caption']} '{username}'""")
+        st.form_submit_button(lang_dict['logout_button'], on_click=logout)
 
 # Initialize
 with st.sidebar:
