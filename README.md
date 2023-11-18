@@ -34,7 +34,7 @@ Create a customized welcome page in the root folder. The convention here is to c
 ## Getting started
 You're ready to run the app as follows:
 ```
-streamlit run rag_app.py
+streamlit run app.py
 ```
 In addition to the pre-loaded content, a user can add additional content that will be used as context for prompts.
 
