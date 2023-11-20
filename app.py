@@ -73,20 +73,16 @@ def check_password():
 
     def login_form():
         """Form with widgets to collect user information"""
-        with st.form("Credentials"):
+        with st.form("credentials"):
             st.text_input('Username', key='username')
             st.text_input('Password', type='password', key='password')
             st.form_submit_button('Login', on_click=password_entered)
 
     def password_entered():
         """Checks whether a password entered by the user is correct."""
-        if st.session_state['username'] in st.secrets[
-            "passwords"
-        ] and hmac.compare_digest(
-            st.session_state['password'],
-            st.secrets.passwords[st.session_state['username']],
-        ):
+        if st.session_state['username'] in st.secrets['passwords'] and hmac.compare_digest(st.session_state['password'], st.secrets.passwords[st.session_state['username']]):
             st.session_state['password_correct'] = True
+            st.session_state.user = st.session_state['username']
             del st.session_state['password']  # Don't store the password.
         else:
             st.session_state['password_correct'] = False
@@ -102,8 +98,8 @@ def check_password():
     return False
 
 def logout():
-    del st.session_state['password_correct']
-    del st.session_state['username']
+    del st.session_state.password_correct
+    del st.session_state.user
 
 # Function for Vectorizing uploaded data into Astra DB
 def vectorize_text(uploaded_files):
@@ -174,7 +170,7 @@ def load_rails(username):
 if not check_password():
     st.stop()  # Do not continue if check_password is not True.
 
-username = st.session_state['username']
+username = st.session_state.user
 language = st.secrets.languages[username]
 lang_dict = load_localization(language)
 
@@ -335,24 +331,23 @@ with st.sidebar:
                 memory.clear()
 
 # Drop the vector data and start from scratch
-with st.sidebar:
-    with st.form('delete_context'):
-        st.caption(lang_dict['delete_context'])
-        submitted = st.form_submit_button(lang_dict['delete_context_button'])
-        if submitted:
-            with st.spinner(lang_dict['deleting_context']):
-                vectorstore.clear()
-                memory.clear()
-                st.session_state.clear()
-                st.session_state.messages = [AIMessage(content=lang_dict['assistant_welcome'])]
+if (username in st.secrets['delete_option'] and st.secrets.delete_option[username] == 'True'):
+    with st.sidebar:
+        with st.form('delete_context'):
+            st.caption(lang_dict['delete_context'])
+            submitted = st.form_submit_button(lang_dict['delete_context_button'])
+            if submitted:
+                with st.spinner(lang_dict['deleting_context']):
+                    vectorstore.clear()
+                    memory.clear()
+                    st.session_state.messages = [AIMessage(content=lang_dict['assistant_welcome'])]
 
 # Draw rails
 with st.sidebar:
         st.subheader(lang_dict['rails_1'])
         st.caption(lang_dict['rails_2'])
         for i in rails_dict:
-            if i>1:
-                st.markdown(f"{i-1}. {rails_dict[i]}")
+            st.markdown(f"{i}. {rails_dict[i]}")
 
 # Draw all messages, both user and agent so far (every time the app reruns)
 for message in st.session_state.messages:
@@ -390,16 +385,15 @@ if question := st.chat_input(lang_dict['assistant_question']):
         print(f"Using chain: {chain}")
 
         # Call the chain and stream the results into the UI
-        callback = StreamHandler(response_placeholder)
-        response = chain.invoke({'question': question, 'chat_history': history}, config={'callbacks': [callback]})
+        response = chain.invoke({'question': question, 'chat_history': history}, config={'callbacks': [StreamHandler(response_placeholder)]})
         print(f"Response: {response}")
         content = response.content
 
         # Write the sources used
         relevant_documents = retriever.get_relevant_documents(question)
-        content += """
+        content += f"""
         
-*The following context was used for this answer:*  
+*{lang_dict['sources_used']}:*  
 """
         sources = []
         for doc in relevant_documents:
@@ -421,4 +415,4 @@ if question := st.chat_input(lang_dict['assistant_question']):
         st.session_state.messages.append(AIMessage(content=content))
 
 with st.sidebar:
-            st.caption("v11.07.01")
+            st.caption("v11.20.01")

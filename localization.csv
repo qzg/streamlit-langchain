@@ -8,7 +8,7 @@ en_US,load_model,Getting the OpenAI Chat Model...
 en_US,load_context,Upload a document for additional context
 en_US,load_context_button,Save
 en_US,delete_context,"Delete the context, history and start over. This deletes vector embeddings for ALL users!"
-nl_NL,delete_context_button,Delete context
+en_US,delete_context_button,Delete context
 en_US,deleting_context,Removing context and intialising...
 en_US,delete_memory,"Delete the history in the conversational memory."
 en_US,deleting_memory,Removing memory...
@@ -22,6 +22,7 @@ en_US,rails_1,🤩 Try the following prompts ⬇️
 en_US,rails_2,(copy and paste in the chat box)
 en_US,logout_caption,Welcome! Logged in as
 en_US,logout_button,Logout
+en_US,sources_used,The following context was used for this answer:
 nl_NL,connect_astra,Verkrijgen van de Astra DB verbinding...
 nl_NL,load_embedding,Verkrijgen van de OpenAI embedding...
 nl_NL,load_vectorstore,Verkrijgen van de vector opslag...
@@ -45,3 +46,4 @@ nl_NL,rails_1,🤩 Probeer de volgende prompts ⬇️
 nl_NL,rails_2,(kopieer en plak in de chat)
 nl_NL,logout_caption,Welkom! Ingelogd als
 nl_NL,logout_button,Uitloggen
+nl_NL,sources_used,De volgende context is gebruikt voor dit antwoord:
