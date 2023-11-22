@@ -12,9 +12,10 @@ import pandas as pd
 
 from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
+from astrapy.db import AstraDBCollection, AstraDB as AstraDBClient
 
 from langchain.chat_models import ChatOpenAI
-from langchain.vectorstores import Cassandra
+from langchain.vectorstores import Cassandra, AstraDB
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.memory import CassandraChatMessageHistory
@@ -23,7 +24,7 @@ import tempfile
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PyPDFLoader
 
-from langchain.schema import HumanMessage, AIMessage
+from langchain.schema import HumanMessage, AIMessage, Document
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema.runnable import RunnableMap
 
@@ -58,7 +59,9 @@ global rails_dict
 global session
 global embedding
 global vectorstore
+global vectorstore2
 global retriever
+global retriever2
 global model
 global chat_history
 global memory
@@ -123,7 +126,7 @@ def vectorize_text(uploaded_files):
             if uploaded_file.name.endswith('txt'):
                 file = [uploaded_file.read().decode()]
                 texts = text_splitter.create_documents(file, [{'source': uploaded_file.name}])
-                vectorstore.add_documents(texts)
+                vectorstore2.add_documents(texts)
                 st.info(f"{len(texts)} {lang_dict['load_text']}")
 
             if uploaded_file.name.endswith('pdf'):
@@ -133,7 +136,7 @@ def vectorize_text(uploaded_files):
                 docs.extend(loader.load())
 
                 pages = text_splitter.split_documents(docs)
-                vectorstore.add_documents(pages)  
+                vectorstore2.add_documents(pages)  
                 st.info(f"{len(pages)} {lang_dict['load_pdf']}")
 
 ##################
@@ -206,6 +209,18 @@ def load_vectorstore(username):
         keyspace='vector_preview',
         table_name=f"vector_context_{username}"
     )
+
+# Cache Vector Store 2 for future runs
+@st.cache_resource(show_spinner=lang_dict['load_vectorstore'])
+def load_vectorstore2(username):
+    print("load_vectorstore2")
+    # Get the load_vectorstore store from Astra DB
+    return AstraDB(
+        embedding=embedding,
+        collection_name=f"vector_context2_{username}",
+        token=st.secrets["ASTRA_VECTOR_TOKEN"],
+        api_endpoint=os.environ["ASTRA_VECTOR_ENDPOINT"],
+    )
     
 # Cache Retriever for future runs
 @st.cache_resource(show_spinner=lang_dict['load_retriever'])
@@ -213,6 +228,16 @@ def load_retriever():
     print("load_retriever")
     # Get the Retriever from the Vectorstore
     return vectorstore.as_retriever(
+        search_kwargs={"k": top_k_vectorstore}
+    )
+
+# QZG
+# Cache Vector Retriever for future runs
+@st.cache_resource(show_spinner=lang_dict['load_retriever'])
+def load_retriever2():
+    print("load_retriever2")
+    # Get the Retriever from the Vectorstore
+    return vectorstore2.as_retriever(
         search_kwargs={"k": top_k_vectorstore}
     )
 
@@ -307,7 +332,9 @@ with st.sidebar:
     session = load_session()
     embedding = load_embedding()
     vectorstore = load_vectorstore(username)
+    vectorstore2 = load_vectorstore2(username)
     retriever = load_retriever()
+    retriever2 = load_retriever2()
     model = load_model()
     chat_history = load_chat_history(username)
     memory = load_memory()
@@ -375,7 +402,7 @@ if question := st.chat_input(lang_dict['assistant_question']):
         print(f"Using memory: {history}")
 
         inputs = RunnableMap({
-            'context': lambda x: retriever.get_relevant_documents(x['question']),
+            'context': lambda x: retriever2.get_relevant_documents(x['question']),
             'chat_history': lambda x: x['chat_history'],
             'question': lambda x: x['question']
         })
@@ -387,10 +414,11 @@ if question := st.chat_input(lang_dict['assistant_question']):
         # Call the chain and stream the results into the UI
         response = chain.invoke({'question': question, 'chat_history': history}, config={'callbacks': [StreamHandler(response_placeholder)]})
         print(f"Response: {response}")
+        print(embedding.embed_query(question))
         content = response.content
 
         # Write the sources used
-        relevant_documents = retriever.get_relevant_documents(question)
+        relevant_documents = retriever2.get_relevant_documents(question)
         content += f"""
         
 *{lang_dict['sources_used']}:*  
