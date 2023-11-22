@@ -1,26 +1,10 @@
-## Your personal productivity booster
-Generative AI is considered to bring the next Industrial Revolution.
+## Retreival Augmented Generation (RAG) Demonstration
+This app is intended to illustrate how you can add relevant knowledge to an otherwise basic LLM Chat.  
 
-Why? Studies show a **37% efficiency boost** in day to day work activities!
+Find a PDF with some information in it that an LLM wouldn't normally have. 
+Before uploading the PDF, ask a question about some of the contents of the PDF.
+Upload the PDF and ask the same question again.  With the new context, the LLM can give more informed answers.
 
-#### What is this app?
-This app is a Chat Agent which takes into account Enterprise Context to provide meaningful and contextual responses.
-Why is this a big thing? It is because the underlying Foundational Large Language Models are not trained on Enterprise Data. They have no way of knowing anything about your organization.
-Also, they are trained on a moment in time, so they typically miss out on relevant and recent information.
-
-#### What does it know?
-The app has been pre-loaded with the following information:
-- [DataStax homepage](https://www.datastax.com)
-- [Vector search for Genrative AI Apps](https://www.datastax.com/resources/whitepaper/vector-search-for-generative-ai-apps)
-- [Astra DB Datasheet](https://cdn.sanity.io/files/bbnkhnhl/production/325d36f40acc590b146ea9d77442cf4ed1da9eac.pdf)
-- [Digital Champion: Priceline](https://www.datastax.com/digital-champions/martin-brodbeck-delivers-the-best-travel-products-to-priceline-customers-by-leveraging-real-time-ai)
-- [Luna for Apache Cassandra](https://www.postnl.nl/zakelijke-oplossingen/duurzaamheid/)
-
-This means you can start interacting with your personal assistant based on the above information!
-
-#### Add additonal content
-Just drop a PDF or Text file into the upload box in the sidebar and hit `Save`.
-
-By the way... Be careful with the `Delete context` button. As this will do exactly that. It deletes the preloaded content mentioned above rendering the personal assistant non-contextual 😉
+How do you do this in your applications?  You need a vector database, and AstraDB is one of the best.  
 
 ---
