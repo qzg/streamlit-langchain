@@ -365,7 +365,7 @@ if (username in st.secrets['delete_option'] and st.secrets.delete_option[usernam
             submitted = st.form_submit_button(lang_dict['delete_context_button'])
             if submitted:
                 with st.spinner(lang_dict['deleting_context']):
-                    vectorstore.clear()
+                    vectorstore2.clear()
                     memory.clear()
                     st.session_state.messages = [AIMessage(content=lang_dict['assistant_welcome'])]
 
