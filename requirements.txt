@@ -7,3 +7,4 @@ cassandra-driver
 cassio
 pypdf
 pandas
+astrapy
