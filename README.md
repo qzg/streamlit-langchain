@@ -10,13 +10,12 @@ This Chat Agent is build specifically as a reusable and configurable sample app 
 7. It offers a configurable localization through `localization.csv`
 8. It offers a guided experience on-rails through `rails.csv`
 
-## Preparations
+## Preparation
 1. First install the Python dependencies using:
 ```
 pip3 install -r requirements.txt
 ```
-2. Download your Astra DB Secure Connect Bundle and place it in the `streamlit-langchain` directory.
-3. Then update the `OpenAI`, `AstraDB` and optionally `LangSmith` secrets in `streamlit-langchain/.streamlit/secrets.toml`. There is an example provided at `secrets.toml.example`.
+2. Then update the `OpenAI`, `AstraDB` and optionally `LangSmith` secrets in `streamlit-langchain/.streamlit/secrets.toml`. There is an example provided at `secrets.toml.example`.
 
 ## Customization
 Now it's time to customize the app for your specific situation or customers.
